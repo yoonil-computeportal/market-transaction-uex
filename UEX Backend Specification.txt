@@ -1,0 +1,1568 @@
+Version: 2.0  
+Date: July 11, 2025  
+Document Type: Backend Development Specification  
+Classification: Integration Development  
+
+Table of Contents
+
+Executive Summary
+
+System Architecture
+
+Core Payment Processing Services
+
+Currency Conversion Services
+
+API Specifications for ComputePortal Tiers
+
+Security and Compliance
+
+Integration Workflows
+
+Testing and Validation
+
+1. Executive Summary
+
+1.1 Purpose
+
+This specification defines the UEX backend services required to support ComputePortal Marketplace with comprehensive payment processing and currency conversion capabilities:
+
+Payment Processing: Handle payments from buyers through ComputePortal Client-Tier and distribute funds to sellers and ComputePortal Management-Tier
+
+Multi-Currency Support: Support all currency conversion scenarios:
+
+Fiat-to-Fiat (same currency)
+
+Fiat-to-Fiat (different currencies)
+
+Fiat-to-Crypto
+
+Crypto-to-Fiat
+
+Multi-destination Settlement: Handle seller payouts to cryptocurrency wallets or fiat bank accounts in specified currencies
+
+1.2 Fee Structure
+
+Fee Calculation:
+
+Buyer Fee: 0.5% charged to buyer (added to transaction cost)
+
+Seller Fee: 0.5% deducted from seller payout
+
+Total ComputePortal Management-Tier Revenue: 1.0% of transaction value
+
+Currency Conversion Fees: 0.5-1% depending on conversion type
+
+Example ($100 transaction scenarios):
+
+Scenario
+
+Buyer Payment
+
+Seller Payout
+
+Management-Tier Fee
+
+USD → USD 
+
+$100.50 USD 
+
+$99.50 USD 
+
+$1.00 USD 
+
+EUR → USD 
+
+€92.59 EUR 
+
+$99.50 USD 
+
+$1.00 USD 
+
+USD → BTC 
+
+$100.50 USD 
+
+0.00221 BTC 
+
+$1.00 USD 
+
+BTC → USD 
+
+0.002233 BTC 
+
+$99.50 USD 
+
+$1.00 USD 
+
+1.3 Supported Features
+
+Payment Methods: Stripe, PayPal, Cardano tokens, Cryptocurrencies (BTC, ETH, SOL, DOGE, TRX, USDT, XRP)
+
+Seller Payout Methods: Cryptocurrency wallets (BTC, ETH, SOL, etc.) or fiat bank accounts (USD, EUR, KRW, etc.)
+
+Currency Conversions: All major fiat currencies and cryptocurrencies
+
+Multi-party Settlements: Simultaneous payments to sellers and ComputePortal Management-Tier
+
+Escrow Services: Secure transaction processing with buyer protection
+
+2. System Architecture
+
+2.1 UEX Backend Architecture
+
+UEX BACKEND SERVICES
+├── Payment Processing Engine
+│   ├── Multi-Gateway Manager (Stripe, PayPal, Crypto)
+│   ├── Multi-party Settlement Service
+│   ├── Transaction Orchestration Service
+│   └── Payment Validation Service
+├── Currency Conversion Engine
+│   ├── Real-time Exchange Rate Service
+│   ├── Fiat-to-Fiat Conversion Service
+│   ├── Fiat-to-Crypto Conversion Service
+│   ├── Crypto-to-Fiat Conversion Service
+│   └── Conversion History Service
+├── Payout Management Service
+│   ├── Crypto Wallet Integration
+│   ├── Bank Account Validation
+│   ├── Multi-currency Payout Service
+│   └── Payout Status Tracking
+├── Escrow & Settlement Service
+│   ├── Escrow Management Service
+│   ├── Funds Release Service
+│   ├── Dispute Resolution Service
+│   └── Settlement Reconciliation Service
+└── Integration API Layer
+    ├── ComputePortal Client-Tier APIs
+    ├── ComputePortal Processing Tier APIs
+    ├── ComputePortal Management-Tier APIs
+    └── Webhook Management Service
+
+2.2 Enhanced Database Schema
+
+-- Seller Payout Accounts with Currency Support
+CREATE TABLE seller_payout_accounts (
+    id UUID PRIMARY KEY,
+    seller_id UUID NOT NULL,
+    account_type VARCHAR(20) NOT NULL, -- 'crypto_wallet', 'bank_account'
+    currency VARCHAR(10) NOT NULL,
+    account_details JSONB NOT NULL,
+    verification_status VARCHAR(20) DEFAULT 'pending',
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Enhanced Payment Transactions
+CREATE TABLE payment_transactions (
+    id UUID PRIMARY KEY,
+    computeportal_transaction_id UUID NOT NULL,
+    buyer_id UUID NOT NULL,
+    seller_id UUID NOT NULL,
+    transaction_amount DECIMAL(18,8) NOT NULL,
+    transaction_currency VARCHAR(10) NOT NULL,
+    buyer_payment_currency VARCHAR(10) NOT NULL,
+    seller_payout_currency VARCHAR(10) NOT NULL,
+    seller_payout_account_id UUID REFERENCES seller_payout_accounts(id),
+    buyer_payment_method VARCHAR(50) NOT NULL,
+    
+    -- Fee Structure
+    buyer_fee_amount DECIMAL(18,8) NOT NULL,
+    seller_fee_amount DECIMAL(18,8) NOT NULL,
+    total_fees DECIMAL(18,8) NOT NULL,
+    buyer_total_cost DECIMAL(18,8) NOT NULL,
+    seller_net_payout DECIMAL(18,8) NOT NULL,
+    management_tier_fee_amount DECIMAL(18,8) NOT NULL,
+    
+    -- Conversion Details
+    conversion_type VARCHAR(20), -- 'same_currency', 'fiat_to_fiat', 'fiat_to_crypto', 'crypto_to_fiat'
+    conversion_required BOOLEAN DEFAULT FALSE,
+    buyer_exchange_rate DECIMAL(18,8),
+    seller_exchange_rate DECIMAL(18,8),
+    conversion_fee DECIMAL(18,8),
+    
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Currency Conversions with Type Support
+CREATE TABLE currency_conversions (
+    id UUID PRIMARY KEY,
+    transaction_id UUID REFERENCES payment_transactions(id),
+    conversion_type VARCHAR(20) NOT NULL, -- 'fiat_to_fiat', 'fiat_to_crypto', 'crypto_to_fiat'
+    from_currency VARCHAR(10) NOT NULL,
+    to_currency VARCHAR(10) NOT NULL,
+    from_amount DECIMAL(18,8) NOT NULL,
+    to_amount DECIMAL(18,8) NOT NULL,
+    exchange_rate DECIMAL(18,8) NOT NULL,
+    conversion_fee DECIMAL(18,8) NOT NULL,
+    conversion_provider VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Management Tier Fee Collections
+CREATE TABLE management_tier_fees (
+    id UUID PRIMARY KEY,
+    transaction_id UUID REFERENCES payment_transactions(id),
+    fee_amount DECIMAL(18,8) NOT NULL,
+    fee_currency VARCHAR(10) NOT NULL,
+    collection_status VARCHAR(20) NOT NULL,
+    collection_reference VARCHAR(100),
+    collection_account_id UUID,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Exchange Rate History
+CREATE TABLE exchange_rates (
+    id UUID PRIMARY KEY,
+    from_currency VARCHAR(10) NOT NULL,
+    to_currency VARCHAR(10) NOT NULL,
+    rate DECIMAL(18,8) NOT NULL,
+    provider VARCHAR(50) NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_currency_pair_time (from_currency, to_currency, timestamp)
+);
+
+3. Core Payment Processing Services
+
+3.1 Multi-Gateway Payment Manager
+
+Service: Enhanced Payment Gateway Abstraction
+
+Description: Unified interface supporting all currency types and payment methods
+
+Features:
+
+Fiat payment gateways (Stripe, PayPal) with multi-currency support
+
+Cryptocurrency payment processing (BTC, ETH, SOL, DOGE, TRX, USDT, XRP)
+
+Cardano token processing
+
+Gateway failover and redundancy
+
+Real-time currency conversion integration
+
+API Endpoints:
+
+// Enhanced payment processing with currency conversion
+POST /api/v1/payments/process
+{
+  "transaction_id": "uuid",
+  "buyer_id": "uuid",
+  "transaction_amount": "100.00",
+  "transaction_currency": "USD",
+  "buyer_payment_currency": "EUR",
+  "seller_payout_currency": "BTC",
+  "buyer_fee_amount": "0.46", // In EUR
+  "total_charge_amount": "92.59", // In EUR
+  "payment_method": "stripe_card",
+  "conversion_type": "multi_currency", // EUR payment, BTC payout
+  "card_token": "tok_xxx",
+  "seller_payout_account_id": "uuid",
+  "metadata": {
+    "computeportal_transaction_id": "uuid",
+    "client_tier_reference": "ct_ref_123"
+  }
+}
+
+// Get payment methods with currency support
+GET /api/v1/payments/methods?buyer_currency=EUR&seller_currency=BTC
+Response: {
+  "buyer_payment_methods": [
+    {
+      "type": "stripe_card",
+      "currency": "EUR",
+      "fees": "2.9% + €0.30",
+      "conversion_required": true
+    }
+  ],
+  "seller_payout_methods": [
+    {
+      "type": "crypto_wallet",
+      "currency": "BTC",
+      "conversion_required": true,
+      "estimated_rate": "45000.00"
+    }
+  ],
+  "conversion_path": "EUR → USD → BTC"
+}
+
+3.2 Enhanced Currency Conversion Service
+
+Service: Multi-Type Currency Conversion Engine
+
+Description: Comprehensive currency conversion supporting all four scenarios
+
+Features:
+
+Same currency processing (no conversion)
+
+Cross-fiat currency conversion
+
+Fiat-to-cryptocurrency conversion
+
+Cryptocurrency-to-fiat conversion
+
+Real-time rate optimization
+
+Conversion fee calculation
+
+API Endpoints:
+
+// Get conversion quote with scenario detection
+POST /api/v1/conversions/quote
+{
+  "transaction_amount": "100.00",
+  "transaction_currency": "USD",
+  "buyer_currency": "EUR",
+  "seller_currency": "BTC",
+  "buyer_id": "uuid",
+  "seller_id": "uuid"
+}
+
+Response: {
+  "conversion_scenario": "fiat_to_crypto",
+  "buyer_conversion": {
+    "from": "EUR",
+    "to": "USD",
+    "amount": "92.59",
+    "rate": "1.08",
+    "fee": "0.46"
+  },
+  "seller_conversion": {
+    "from": "USD",
+    "to": "BTC",
+    "amount": "99.50",
+    "rate": "45000.00",
+    "fee": "0.995",
+    "btc_amount": "0.00221"
+  },
+  "total_fees": {
+    "buyer_fee": "0.46",
+    "seller_fee": "0.50",
+    "conversion_fees": "1.455",
+    "management_tier_total": "1.00"
+  }
+}
+
+// Process conversion by type
+POST /api/v1/conversions/process
+{
+  "conversion_type": "fiat_to_crypto",
+  "transaction_id": "uuid",
+  "buyer_conversion": {
+    "from_currency": "EUR",
+    "to_currency": "USD",
+    "amount": "92.59"
+  },
+  "seller_conversion": {
+    "from_currency": "USD",
+    "to_currency": "BTC",
+    "amount": "99.50",
+    "wallet_address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+  }
+}
+
+3.3 Multi-Party Settlement Service
+
+Service: Enhanced Settlement with Currency Conversion
+
+Description: Handles complex multi-currency settlements with real-time conversion
+
+Features:
+
+Simultaneous multi-currency settlements
+
+Conversion-aware fee calculation
+
+Management-Tier fee collection in preferred currency
+
+Settlement confirmation across all currencies
+
+Rollback capability for failed conversions
+
+API Endpoints:
+
+// Enhanced multi-party settlement
+POST /api/v1/settlements/multi-party-enhanced
+{
+  "transaction_id": "uuid",
+  "conversion_type": "fiat_to_crypto",
+  "transaction_amount": "100.00",
+  "transaction_currency": "USD",
+  "parties": [
+    {
+      "party_id": "buyer_uuid",
+      "party_type": "buyer",
+      "payment_amount": "92.59",
+      "payment_currency": "EUR",
+      "fee_amount": "0.46"
+    },
+    {
+      "party_id": "seller_uuid",
+      "party_type": "seller",
+      "gross_amount": "100.00",
+      "fee_amount": "0.50",
+      "net_amount": "99.50",
+      "payout_currency": "BTC",
+      "payout_amount": "0.00221",
+      "payout_account_id": "uuid"
+    },
+    {
+      "party_id": "management_tier_uuid",
+      "party_type": "management_tier",
+      "fee_amount": "1.00",
+      "fee_currency": "USD",
+      "collection_account_id": "uuid"
+    }
+  ],
+  "conversions": [
+    {
+      "type": "buyer_payment",
+      "from": "EUR",
+      "to": "USD",
+      "rate": "1.08"
+    },
+    {
+      "type": "seller_payout",
+      "from": "USD",
+      "to": "BTC",
+      "rate": "45000.00"
+    }
+  ]
+}
+
+4. Currency Conversion Services
+
+4.1 Real-time Exchange Rate Service
+
+Service: Multi-Provider Rate Aggregation
+
+Description: Comprehensive exchange rate service supporting all currency pairs
+
+Features:
+
+Fiat currency pairs (USD, EUR, KRW, JPY, GBP, etc.)
+
+Cryptocurrency pairs (BTC, ETH, SOL, DOGE, TRX, USDT, XRP)
+
+Cross-asset conversion rates (fiat ↔ crypto)
+
+Rate aggregation from multiple providers
+
+Real-time rate updates and caching
+
+API Endpoints:
+
+// Get comprehensive exchange rates
+GET /api/v1/exchange-rates/comprehensive
+Response: {
+  "fiat_rates": {
+    "USD/EUR": 0.926,
+    "USD/KRW": 1340.50,
+    "EUR/GBP": 0.857
+  },
+  "crypto_rates": {
+    "BTC/USD": 45000.00,
+    "ETH/USD": 3200.00,
+    "SOL/USD": 95.50
+  },
+  "cross_rates": {
+    "BTC/EUR": 41670.00,
+    "ETH/KRW": 4289600.00
+  },
+  "updated_at": "2025-07-11T10:30:00Z"
+}
+
+// Get specific conversion path
+GET /api/v1/exchange-rates/path?from=EUR&to=BTC&amount=92.59
+Response: {
+  "conversion_path": "EUR → USD → BTC",
+  "steps": [
+    {
+      "from": "EUR",
+      "to": "USD",
+      "rate": "1.08",
+      "amount_in": "92.59",
+      "amount_out": "100.00"
+    },
+    {
+      "from": "USD",
+      "to": "BTC",
+      "rate": "45000.00",
+      "amount_in": "100.00",
+      "amount_out": "0.00222"
+    }
+  ],
+  "total_conversion_fee": "1.455"
+}
+
+4.2 Scenario-Based Conversion Processing
+
+Service: Four-Scenario Conversion Engine
+
+Description: Specialized conversion processing for each currency scenario
+
+Features:
+
+Case I: Same currency (no conversion)
+
+Case II: Cross-fiat conversion
+
+Case III: Fiat-to-crypto conversion
+
+Case IV: Crypto-to-fiat conversion
+
+Optimized routing for each scenario
+
+Failure recovery and rollback
+
+API Endpoints:
+
+// Case I: Same Currency Processing
+POST /api/v1/conversions/same-currency
+{
+  "transaction_id": "uuid",
+  "amount": "100.00",
+  "currency": "USD",
+  "buyer_id": "uuid",
+  "seller_id": "uuid"
+}
+
+// Case II: Cross-Fiat Conversion
+POST /api/v1/conversions/cross-fiat
+{
+  "transaction_id": "uuid",
+  "amount": "100.00",
+  "from_currency": "EUR",
+  "to_currency": "USD",
+  "buyer_payment_amount": "92.59",
+  "seller_payout_amount": "99.50"
+}
+
+// Case III: Fiat-to-Crypto Conversion
+POST /api/v1/conversions/fiat-to-crypto
+{
+  "transaction_id": "uuid",
+  "fiat_amount": "100.00",
+  "fiat_currency": "USD",
+  "crypto_currency": "BTC",
+  "crypto_amount": "0.00221",
+  "wallet_address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+}
+
+// Case IV: Crypto-to-Fiat Conversion
+POST /api/v1/conversions/crypto-to-fiat
+{
+  "transaction_id": "uuid",
+  "crypto_amount": "0.002233",
+  "crypto_currency": "BTC",
+  "fiat_amount": "100.00",
+  "fiat_currency": "USD",
+  "bank_account_id": "uuid"
+}
+
+5. API Specifications for ComputePortal Tiers
+
+5.1 Client Tier APIs
+
+Enhanced Payment Interface APIs
+
+Purpose: Support all currency scenarios in ComputePortal Client-Tier
+
+// Enhanced payment session initialization
+POST /api/v1/computeportal/client-tier/payment/init-enhanced
+{
+  "buyer_id": "uuid",
+  "seller_id": "uuid",
+  "transaction_amount": "100.00",
+  "transaction_currency": "USD",
+  "buyer_payment_currency": "EUR",
+  "seller_payout_currency": "BTC",
+  "buyer_payment_method": "stripe_card",
+  "seller_payout_account_id": "uuid",
+  "client_tier_session_id": "uuid"
+}
+
+// Enhanced response with all conversion details
+Response: {
+  "session_id": "uuid",
+  "conversion_scenario": "fiat_to_crypto",
+  "buyer_details": {
+    "payment_amount": "92.59",
+    "payment_currency": "EUR",
+    "fee_amount": "0.46",
+    "total_charge": "93.05"
+  },
+  "seller_details": {
+    "gross_amount": "100.00",
+    "fee_amount": "0.50",
+    "net_amount": "99.50",
+    "payout_currency": "BTC",
+    "payout_amount": "0.00221"
+  },
+  "management_tier_details": {
+    "fee_amount": "1.00",
+    "fee_currency": "USD"
+  },
+  "conversion_details": {
+    "buyer_conversion": {
+      "from": "EUR",
+      "to": "USD",
+      "rate": "1.08",
+      "fee": "0.46"
+    },
+    "seller_conversion": {
+      "from": "USD",
+      "to": "BTC",
+      "rate": "45000.00",
+      "fee": "0.995"
+    }
+  },
+  "session_expires_at": "2025-07-11T11:00:00Z"
+}
+
+// Process enhanced payment
+POST /api/v1/computeportal/client-tier/payment/process-enhanced
+{
+  "session_id": "uuid",
+  "payment_method": "stripe_card",
+  "payment_details": {
+    "card_token": "tok_xxx"
+  },
+  "confirm_conversions": true,
+  "client_tier_reference": "ct_ref_123"
+}
+
+5.2 Processing Tier APIs
+
+Multi-Currency Transaction Processing
+
+Purpose: Support currency conversion at edge cluster level
+
+// Validate multi-currency transaction
+POST /api/v1/computeportal/processing-tier/transaction/validate-multi-currency
+{
+  "transaction_id": "uuid",
+  "cluster_id": "uuid",
+  "conversion_type": "fiat_to_crypto",
+  "currencies": {
+    "buyer_currency": "EUR",
+    "seller_currency": "BTC",
+    "management_tier_currency": "USD"
+  },
+  "amounts": {
+    "transaction_amount": "100.00",
+    "buyer_payment_amount": "92.59",
+    "seller_payout_amount": "0.00221"
+  }
+}
+
+// Process cluster-level multi-currency settlement
+POST /api/v1/computeportal/processing-tier/settlement/multi-currency
+{
+  "cluster_id": "uuid",
+  "transaction_id": "uuid",
+  "conversion_requirements": {
+    "buyer_conversion_needed": true,
+    "seller_conversion_needed": true
+  },
+  "processing_priority": "high"
+}
+
+5.3 Management Tier APIs
+
+Enhanced Fee Collection and Analytics
+
+Purpose: Comprehensive fee management across all currency scenarios
+
+// Get multi-currency fee analytics
+GET /api/v1/computeportal/management-tier/fees/analytics-multi-currency
+?start_date=2025-07-01&end_date=2025-07-31&include_conversions=true
+
+Response: {
+  "summary": {
+    "total_transaction_volume": {
+      "USD": "800000.00",
+      "EUR": "185000.00",
+      "BTC": "4.44"
+    },
+    "total_fees_collected": {
+      "USD": "8000.00",
+      "EUR": "1850.00",
+      "BTC": "0.044"
+    },
+    "conversion_volume": {
+      "fiat_to_fiat": "300000.00",
+      "fiat_to_crypto": "500000.00",
+      "crypto_to_fiat": "200000.00"
+    }
+  },
+  "by_conversion_type": {
+    "same_currency": {
+      "transaction_count": 200,
+      "volume": "200000.00",
+      "fees": "2000.00"
+    },
+    "fiat_to_fiat": {
+      "transaction_count": 300,
+      "volume": "300000.00",
+      "fees": "3000.00"
+    },
+    "fiat_to_crypto": {
+      "transaction_count": 400,
+      "volume": "400000.00",
+      "fees": "4000.00"
+    },
+    "crypto_to_fiat": {
+      "transaction_count": 100,
+      "volume": "100000.00",
+      "fees": "1000.00"
+    }
+  }
+}
+
+// Configure multi-currency fee collection
+POST /api/v1/computeportal/management-tier/fees/configure-multi-currency
+{
+  "fee_collection_accounts": [
+    {
+      "currency": "USD",
+      "account_type": "bank_account",
+      "account_details": {...}
+    },
+    {
+      "currency": "EUR",
+      "account_type": "bank_account",
+      "account_details": {...}
+    },
+    {
+      "currency": "BTC",
+      "account_type": "crypto_wallet",
+      "wallet_address": "bc1qmanagement..."
+    }
+  ],
+  "conversion_preferences": {
+    "auto_convert_to_usd": true,
+    "minimum_conversion_amount": "1000.00"
+  }
+}
+
+6. Security and Compliance
+
+6.1 Enhanced Security Framework
+
+Multi-Currency Security
+
+// Currency-specific authentication
+POST /api/v1/auth/login-multi-currency
+{
+  "client_id": "computeportal_client_tier",
+  "client_secret": "secret_key",
+  "grant_type": "client_credentials",
+  "scope": "multi_currency_payments crypto_conversions",
+  "supported_currencies": ["USD", "EUR", "BTC", "ETH"]
+}
+
+// Crypto wallet verification
+POST /api/v1/security/verify-crypto-wallet
+{
+  "wallet_address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+  "currency": "BTC",
+  "verification_method": "signature",
+  "signature": "signature_data"
+}
+
+Conversion Security
+
+// Secure conversion processing
+POST /api/v1/security/secure-conversion
+{
+  "transaction_id": "uuid",
+  "conversion_type": "fiat_to_crypto",
+  "security_checks": {
+    "aml_screening": true,
+    "sanctions_check": true,
+    "risk_assessment": true
+  },
+  "conversion_limits": {
+    "daily_limit": "10000.00",
+    "transaction_limit": "5000.00"
+  }
+}
+
+6.2 Multi-Currency Compliance
+
+Regulatory Compliance by Currency Type
+
+// Currency-specific compliance check
+POST /api/v1/compliance/currency-specific-check
+{
+  "transaction_id": "uuid",
+  "buyer_currency": "EUR",
+  "seller_currency": "BTC",
+  "buyer_jurisdiction": "EU",
+  "seller_jurisdiction": "US",
+  "compliance_requirements": {
+    "gdpr_compliance": true,
+    "crypto_regulations": true,
+    "cross_border_reporting": true
+  }
+}
+
+// Generate multi-currency compliance report
+GET /api/v1/compliance/reports/multi-currency
+?report_type=regulatory&period=monthly&currencies=USD,EUR,BTC
+
+7. Integration Workflows
+
+7.1 Payment Processing Workflows by Currency Type
+
+Case I: Fiat-to-Fiat (Same Currency)
+
+Scenario: Buyer pays in USD, Seller receives in USD
+
+```mermaid
+sequenceDiagram
+    participant Buyer as Buyer
+    participant CT as ComputePortal Client-Tier
+    participant UEX as UEX Backend
+    participant PG as Payment Gateway
+    participant Bank as Bank
+    participant Seller as Seller
+    participant MT as ComputePortal Management-Tier
+
+    Note over Buyer,MT: Case I: USD → USD (Same Currency)
+    
+    Buyer->>CT: Initiate $100 Transaction
+    CT->>UEX: Initialize Payment Session (USD→USD)
+    UEX->>UEX: Calculate: No conversion needed
+    UEX->>CT: Return Session (Buyer pays $100.50)
+    CT->>Buyer: Display Payment Form (USD)
+    Buyer->>CT: Submit Payment ($100.50 USD)
+    CT->>UEX: Process Payment via Client-Tier
+    UEX->>PG: Charge $100.50 USD
+    PG->>UEX: Payment Confirmed
+    
+    par Simultaneous Settlement
+        UEX->>Bank: Transfer $99.50 USD to Seller Bank Account
+        and UEX->>MT: Transfer $1.00 USD (Total Fees)
+    end
+    
+    UEX->>CT: Send Payment Confirmation
+    CT->>Buyer: Display Success
+    UEX->>Seller: Send Payout Confirmation ($99.50 USD)
+    UEX->>MT: Send Fee Collection Report ($1.00 USD)
+```
+
+
+Case II: Fiat-to-Fiat (Different Currency)
+
+Scenario: Buyer pays in EUR, Seller receives in USD
+
+```mermaid
+sequenceDiagram
+    participant Buyer as Buyer
+    participant CT as ComputePortal Client-Tier
+    participant UEX as UEX Backend
+    participant PG as Payment Gateway
+    participant FX as Currency Exchange
+    participant Bank as Bank
+    participant Seller as Seller
+    participant MT as ComputePortal Management-Tier
+
+    Note over Buyer,MT: Case II: EUR → USD (Different Fiat)
+    
+    Buyer->>CT: Initiate $100 Transaction
+    CT->>UEX: Initialize Payment Session (EUR→USD)
+    UEX->>FX: Get EUR/USD Exchange Rate
+    FX->>UEX: Return Rate (1.08 EUR/USD)
+    UEX->>UEX: Calculate: €92.13 + €0.46 fee = €92.59
+    UEX->>CT: Return Session (Buyer pays €92.59)
+    CT->>Buyer: Display Payment Form (EUR)
+    Buyer->>CT: Submit Payment (€92.59)
+    CT->>UEX: Process Payment via Client-Tier
+    UEX->>PG: Charge €92.59 EUR
+    PG->>UEX: Payment Confirmed
+    
+    UEX->>FX: Convert €92.13 to $100.00 USD
+    FX->>UEX: Conversion Complete
+    
+    par Simultaneous Settlement
+        UEX->>Bank: Transfer $99.50 USD to Seller Bank Account
+        and UEX->>MT: Transfer $1.00 USD (Total Fees)
+    end
+    
+    UEX->>CT: Send Payment Confirmation
+    CT->>Buyer: Display Success
+    UEX->>Seller: Send Payout Confirmation ($99.50 USD)
+    UEX->>MT: Send Fee Collection Report ($1.00 USD)
+```
+
+
+Case III: Fiat-to-Crypto
+
+Scenario: Buyer pays in USD, Seller receives in BTC
+```mermaid
+sequenceDiagram
+    participant Buyer as Buyer
+    participant CT as ComputePortal Client-Tier
+    participant UEX as UEX Backend
+    participant PG as Payment Gateway
+    participant Crypto as Crypto Exchange
+    participant Wallet as Seller BTC Wallet
+    participant MT as ComputePortal Management-Tier
+
+    Note over Buyer,MT: Case III: USD → BTC (Fiat to Crypto)
+    
+    Buyer->>CT: Initiate $100 Transaction
+    CT->>UEX: Initialize Payment Session (USD→BTC)
+    UEX->>Crypto: Get BTC/USD Exchange Rate
+    Crypto->>UEX: Return Rate ($45,000/BTC)
+    UEX->>UEX: Calculate: $99.50 = 0.00221 BTC (after fees)
+    UEX->>CT: Return Session (Buyer pays $100.50, Seller gets ~0.00221 BTC)
+    CT->>Buyer: Display Payment Form (USD)
+    Buyer->>CT: Submit Payment ($100.50 USD)
+    CT->>UEX: Process Payment via Client-Tier
+    UEX->>PG: Charge $100.50 USD
+    PG->>UEX: Payment Confirmed
+    
+    UEX->>Crypto: Convert $99.50 to BTC
+    Crypto->>UEX: Return 0.00221 BTC
+    
+    par Simultaneous Settlement
+        UEX->>Wallet: Transfer 0.00221 BTC to Seller Wallet
+        and UEX->>MT: Transfer $1.00 USD (Total Fees)
+    end
+    
+    UEX->>CT: Send Payment Confirmation
+    CT->>Buyer: Display Success
+    UEX->>Seller: Send Payout Confirmation (0.00221 BTC)
+    UEX->>MT: Send Fee Collection Report ($1.00 USD)
+```
+
+
+Case IV: Crypto-to-Fiat
+
+Scenario: Buyer pays in BTC, Seller receives in USD
+```mermaid
+sequenceDiagram
+    participant Buyer as Buyer
+    participant CT as ComputePortal Client-Tier
+    participant UEX as UEX Backend
+    participant Crypto as Crypto Exchange
+    participant Bank as Bank
+    participant Seller as Seller
+    participant MT as ComputePortal Management-Tier
+
+    Note over Buyer,MT: Case IV: BTC → USD (Crypto to Fiat)
+    
+    Buyer->>CT: Initiate $100 Transaction
+    CT->>UEX: Initialize Payment Session (BTC→USD)
+    UEX->>Crypto: Get BTC/USD Exchange Rate
+    Crypto->>UEX: Return Rate ($45,000/BTC)
+    UEX->>UEX: Calculate: 0.002233 BTC needed (incl. 0.5% buyer fee)
+    UEX->>CT: Return Session (Buyer pays 0.002233 BTC)
+    CT->>Buyer: Display Payment Form (BTC)
+    Buyer->>CT: Submit Payment (0.002233 BTC)
+    CT->>UEX: Process Payment via Client-Tier
+    UEX->>Crypto: Receive 0.002233 BTC
+    Crypto->>UEX: BTC Payment Confirmed
+    
+    UEX->>Crypto: Convert 0.002222 BTC to $100.00 USD
+    Crypto->>UEX: Return $100.00 USD
+    
+    par Simultaneous Settlement
+        UEX->>Bank: Transfer $99.50 USD to Seller Bank Account
+        and UEX->>MT: Transfer $1.00 USD (Total Fees)
+    end
+    
+    UEX->>CT: Send Payment Confirmation
+    CT->>Buyer: Display Success
+    UEX->>Seller: Send Payout Confirmation ($99.50 USD)
+    UEX->>MT: Send Fee Collection Report ($1.00 USD)
+```
+
+
+7.2 API Workflows by Currency Type
+
+Case I: Same Currency API Flow
+
+// Initialize same currency session
+POST /api/v1/computeportal/client-tier/payment/init-same-currency
+{
+  "buyer_id": "uuid",
+  "seller_id": "uuid",
+  "transaction_amount": "100.00",
+  "currency": "USD",
+  "buyer_payment_method": "stripe_card",
+  "seller_payout_account_id": "uuid"
+}
+
+// Response
+{
+  "session_id": "uuid",
+  "conversion_scenario": "same_currency",
+  "conversion_required": false,
+  "buyer_total_cost": "100.50",
+  "seller_net_payout": "99.50",
+  "management_tier_fees": "1.00",
+  "all_amounts_currency": "USD",
+  "processing_time": "instant"
+}
+
+Case II: Different Fiat Currency API Flow
+
+// Initialize cross-fiat session
+POST /api/v1/computeportal/client-tier/payment/init-cross-fiat
+{
+  "buyer_id": "uuid",
+  "seller_id": "uuid",
+  "transaction_amount": "100.00",
+  "transaction_currency": "USD",
+  "buyer_payment_currency": "EUR",
+  "seller_payout_currency": "USD",
+  "buyer_payment_method": "stripe_card_eur",
+  "seller_payout_account_id": "uuid"
+}
+
+// Response
+{
+  "session_id": "uuid",
+  "conversion_scenario": "cross_fiat",
+  "conversion_required": true,
+  "buyer_details": {
+    "payment_amount": "92.59",
+    "payment_currency": "EUR",
+    "fee_amount": "0.46",
+    "total_charge": "93.05"
+  },
+  "seller_details": {
+    "payout_amount": "99.50",
+    "payout_currency": "USD",
+    "fee_amount": "0.50"
+  },
+  "conversion_details": {
+    "exchange_rate": "1.08",
+    "conversion_fee": "0.50",
+    "estimated_processing_time": "2-3 minutes"
+  }
+}
+
+Case III: Fiat-to-Crypto API Flow
+
+// Initialize fiat-to-crypto session
+POST /api/v1/computeportal/client-tier/payment/init-fiat-to-crypto
+{
+  "buyer_id": "uuid",
+  "seller_id": "uuid",
+  "transaction_amount": "100.00",
+  "transaction_currency": "USD",
+  "buyer_payment_currency": "USD",
+  "seller_payout_currency": "BTC",
+  "buyer_payment_method": "stripe_card",
+  "seller_crypto_wallet": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+}
+
+// Response
+{
+  "session_id": "uuid",
+  "conversion_scenario": "fiat_to_crypto",
+  "conversion_required": true,
+  "buyer_details": {
+    "payment_amount": "100.50",
+    "payment_currency": "USD",
+    "fee_amount": "0.50"
+  },
+  "seller_details": {
+    "gross_amount": "100.00",
+    "fee_amount": "0.50",
+    "net_amount": "99.50",
+    "payout_currency": "BTC",
+    "estimated_btc_amount": "0.00221"
+  },
+  "conversion_details": {
+    "btc_exchange_rate": "45000.00",
+    "conversion_fee": "0.995",
+    "network_fee": "0.0001",
+    "estimated_processing_time": "10-60 minutes"
+  }
+}
+
+Case IV: Crypto-to-Fiat API Flow
+
+// Initialize crypto-to-fiat session
+POST /api/v1/computeportal/client-tier/payment/init-crypto-to-fiat
+{
+  "buyer_id": "uuid",
+  "seller_id": "uuid",
+  "transaction_amount": "100.00",
+  "transaction_currency": "USD",
+  "buyer_payment_currency": "BTC",
+  "seller_payout_currency": "USD",
+  "buyer_crypto_wallet": "bc1qbuyer...",
+  "seller_bank_account_id": "uuid"
+}
+
+// Response
+{
+  "session_id": "uuid",
+  "conversion_scenario": "crypto_to_fiat",
+  "conversion_required": true,
+  "buyer_details": {
+    "payment_amount": "0.002233",
+    "payment_currency": "BTC",
+    "fee_amount": "0.000011",
+    "usd_equivalent": "100.50"
+  },
+  "seller_details": {
+    "payout_amount": "99.50",
+    "payout_currency": "USD",
+    "fee_amount": "0.50"
+  },
+  "conversion_details": {
+    "btc_exchange_rate": "45000.00",
+    "conversion_fee": "1.00",
+    "estimated_processing_time": "30-60 minutes"
+  }
+}
+
+7.3 Fee Calculation by Currency Type
+
+class EnhancedCurrencyFeeCalculator {
+  
+  // Case I: Same Currency
+  calculateSameCurrencyFees(amount: number, currency: string): FeeBreakdown {
+    const buyerFee = amount * 0.005;
+    const sellerFee = amount * 0.005;
+    
+    return {
+      conversion_type: "same_currency",
+      buyer_fee: buyerFee,
+      seller_fee: sellerFee,
+      buyer_total_cost: amount + buyerFee,
+      seller_net_payout: amount - sellerFee,
+      management_tier_fees: buyerFee + sellerFee,
+      conversion_fee: 0,
+      all_amounts_currency: currency,
+      processing_time: "instant"
+    };
+  }
+  
+  // Case II: Cross-Fiat
+  calculateCrossFiatFees(
+    amount: number,
+    buyerCurrency: string,
+    sellerCurrency: string,
+    exchangeRate: number
+  ): FeeBreakdown {
+    const buyerAmount = amount / exchangeRate;
+    const buyerFee = buyerAmount * 0.005;
+    const conversionFee = amount * 0.005;
+    
+    return {
+      conversion_type: "cross_fiat",
+      buyer_payment_amount: buyerAmount,
+      buyer_fee: buyerFee,
+      buyer_total_cost: buyerAmount + buyerFee,
+      seller_gross_amount: amount,
+      seller_fee: amount * 0.005,
+      seller_net_payout: amount * 0.995,
+      management_tier_fees: amount * 0.01,
+      conversion_fee: conversionFee,
+      exchange_rate: exchangeRate,
+      buyer_currency: buyerCurrency,
+      seller_currency: sellerCurrency,
+      processing_time: "2-3 minutes"
+    };
+  }
+  
+  // Case III: Fiat-to-Crypto
+  calculateFiatToCryptoFees(
+    fiatAmount: number,
+    cryptoRate: number,
+    fiatCurrency: string,
+    cryptoCurrency: string
+  ): FeeBreakdown {
+    const sellerNetFiat = fiatAmount * 0.995;
+    const cryptoAmount = sellerNetFiat / cryptoRate;
+    const conversionFee = fiatAmount * 0.01;
+    const networkFee = this.getCryptoNetworkFee(cryptoCurrency);
+    
+    return {
+      conversion_type: "fiat_to_crypto",
+      buyer_payment_amount: fiatAmount,
+      buyer_fee: fiatAmount * 0.005,
+      buyer_total_cost: fiatAmount * 1.005,
+      seller_gross_amount: fiatAmount,
+      seller_fee: fiatAmount * 0.005,
+      seller_net_payout: cryptoAmount - networkFee,
+      management_tier_fees: fiatAmount * 0.01,
+      conversion_fee: conversionFee,
+      network_fee: networkFee,
+      crypto_exchange_rate: cryptoRate,
+      buyer_currency: fiatCurrency,
+      seller_currency: cryptoCurrency,
+      processing_time: "10-60 minutes"
+    };
+  }
+  
+  // Case IV: Crypto-to-Fiat
+  calculateCryptoToFiatFees(
+    fiatAmount: number,
+    cryptoRate: number,
+    cryptoCurrency: string,
+    fiatCurrency: string
+  ): FeeBreakdown {
+    const totalFiatWithFees = fiatAmount * 1.005;
+    const totalCryptoNeeded = totalFiatWithFees / cryptoRate;
+    const conversionFee = fiatAmount * 0.01;
+    const networkFee = this.getCryptoNetworkFee(cryptoCurrency);
+    
+    return {
+      conversion_type: "crypto_to_fiat",
+      buyer_payment_amount: totalCryptoNeeded + networkFee,
+      buyer_fee: (fiatAmount * 0.005) / cryptoRate,
+      buyer_total_cost: totalCryptoNeeded + networkFee,
+      seller_gross_amount: fiatAmount,
+      seller_fee: fiatAmount * 0.005,
+      seller_net_payout: fiatAmount * 0.995,
+      management_tier_fees: fiatAmount * 0.01,
+      conversion_fee: conversionFee,
+      network_fee: networkFee,
+      crypto_exchange_rate: cryptoRate,
+      buyer_currency: cryptoCurrency,
+      seller_currency: fiatCurrency,
+      processing_time: "30-60 minutes"
+    };
+  }
+  
+  private getCryptoNetworkFee(currency: string): number {
+    const networkFees = {
+      'BTC': 0.0001,
+      'ETH': 0.005,
+      'SOL': 0.00025,
+      'DOGE': 1.0,
+      'TRX': 1.0,
+      'USDT': 0.005,
+      'XRP': 0.00001
+    };
+    return networkFees[currency] || 0.001;
+  }
+}
+
+7.4 Enhanced Settlement Workflow Summary
+
+Case
+
+Buyer Payment
+
+Seller Payout
+
+Conversion
+
+Management-Tier Fee
+
+Processing Time
+
+I. Same Fiat 
+
+$100.50 USD 
+
+$99.50 USD 
+
+None 
+
+$1.00 USD 
+
+Instant 
+
+II. Cross Fiat 
+
+€93.05 EUR 
+
+$99.50 USD 
+
+EUR→USD 
+
+$1.00 USD 
+
+2-3 minutes 
+
+III. Fiat→Crypto 
+
+$100.50 USD 
+
+0.00221 BTC 
+
+USD→BTC 
+
+$1.00 USD 
+
+10-60 minutes 
+
+IV. Crypto→Fiat 
+
+0.002233 BTC 
+
+$99.50 USD 
+
+BTC→USD 
+
+$1.00 USD 
+
+30-60 minutes 
+
+7.5 Error Handling and Recovery
+
+class EnhancedErrorHandler {
+  
+  async handleConversionFailure(
+    transactionId: string,
+    conversionType: string,
+    error: ConversionError
+  ): Promise<void> {
+    
+    switch(conversionType) {
+      case 'same_currency':
+        // Direct settlement failure - retry payment processing
+        await this.retryDirectSettlement(transactionId);
+        break;
+        
+      case 'cross_fiat':
+        // Fiat conversion failure - try alternative FX provider
+        await this.retryWithAlternativeFXProvider(transactionId);
+        break;
+        
+      case 'fiat_to_crypto':
+        // Crypto purchase failure - hold fiat in escrow
+        await this.holdFiatInEscrow(transactionId);
+        await this.retryCryptoPurchase(transactionId);
+        break;
+        
+      case 'crypto_to_fiat':
+        // Crypto sale failure - return crypto to buyer
+        await this.returnCryptoToBuyer(transactionId);
+        break;
+    }
+    
+    // Always notify all parties
+    await this.notifyAllParties(transactionId, conversionType, error);
+  }
+  
+  async handlePartialSettlementFailure(
+    transactionId: string,
+    failedParty: string
+  ): Promise<void> {
+    
+    if (failedParty === 'seller') {
+      // Seller payout failed - hold funds, retry
+      await this.holdSellerFunds(transactionId);
+      await this.retrySellerPayout(transactionId);
+    } else if (failedParty === 'management_tier') {
+      // Management tier fee collection failed - retry
+      await this.retryManagementTierFeeCollection(transactionId);
+    }
+  }
+}
+
+8. Testing and Validation
+
+8.1 Multi-Currency Testing Framework
+
+describe('Multi-Currency Payment Processing', () => {
+  
+  describe('Case I: Same Currency (USD→USD)', () => {
+    test('should process USD payment with USD payout', async () => {
+      const response = await request(app)
+        .post('/api/v1/computeportal/client-tier/payment/process-same-currency')
+        .send({
+          transaction_amount: 100.00,
+          currency: 'USD',
+          buyer_payment_method: 'stripe_card',
+          seller_payout_account_type: 'bank_account'
+        });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.buyer_total_cost).toBe(100.50);
+      expect(response.body.seller_net_payout).toBe(99.50);
+      expect(response.body.management_tier_fees).toBe(1.00);
+      expect(response.body.conversion_required).toBe(false);
+    });
+  });
+  
+  describe('Case II: Cross-Fiat (EUR→USD)', () => {
+    test('should process EUR payment with USD payout', async () => {
+      const response = await request(app)
+        .post('/api/v1/computeportal/client-tier/payment/process-cross-fiat')
+        .send({
+          transaction_amount: 100.00,
+          transaction_currency: 'USD',
+          buyer_payment_currency: 'EUR',
+          seller_payout_currency: 'USD',
+          exchange_rate: 1.08
+        });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.buyer_payment_amount).toBeCloseTo(93.05);
+      expect(response.body.seller_net_payout).toBe(99.50);
+      expect(response.body.conversion_completed).toBe(true);
+    });
+  });
+  
+  describe('Case III: Fiat-to-Crypto (USD→BTC)', () => {
+    test('should process USD payment with BTC payout', async () => {
+      const response = await request(app)
+        .post('/api/v1/computeportal/client-tier/payment/process-fiat-to-crypto')
+        .send({
+          transaction_amount: 100.00,
+          buyer_payment_currency: 'USD',
+          seller_payout_currency: 'BTC',
+          btc_exchange_rate: 45000.00,
+          seller_wallet_address: 'bc1qtest...'
+        });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.buyer_total_cost).toBe(100.50);
+      expect(response.body.seller_btc_amount).toBeCloseTo(0.00221);
+      expect(response.body.crypto_transfer_status).toBe('completed');
+    });
+  });
+  
+  describe('Case IV: Crypto-to-Fiat (BTC→USD)', () => {
+    test('should process BTC payment with USD payout', async () => {
+      const response = await request(app)
+        .post('/api/v1/computeportal/client-tier/payment/process-crypto-to-fiat')
+        .send({
+          transaction_amount: 100.00,
+          buyer_payment_currency: 'BTC',
+          seller_payout_currency: 'USD',
+          btc_exchange_rate: 45000.00,
+          buyer_btc_amount: 0.002233
+        });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.btc_received).toBeCloseTo(0.002233);
+      expect(response.body.seller_net_payout).toBe(99.50);
+      expect(response.body.crypto_conversion_status).toBe('completed');
+    });
+  });
+});
+
+8.2 Currency Conversion Testing
+
+describe('Currency Conversion Service', () => {
+  
+  test('should handle all conversion scenarios', async () => {
+    const conversionScenarios = [
+      {
+        type: 'same_currency',
+        from: 'USD',
+        to: 'USD',
+        amount: 100.00,
+        expected_conversion: false
+      },
+      {
+        type: 'cross_fiat',
+        from: 'EUR',
+        to: 'USD',
+        amount: 92.59,
+        expected_conversion: true
+      },
+      {
+        type: 'fiat_to_crypto',
+        from: 'USD',
+        to: 'BTC',
+        amount: 99.50,
+        expected_conversion: true
+      },
+      {
+        type: 'crypto_to_fiat',
+        from: 'BTC',
+        to: 'USD',
+        amount: 0.002222,
+        expected_conversion: true
+      }
+    ];
+    
+    for (const scenario of conversionScenarios) {
+      const result = await processConversion(scenario);
+      
+      expect(result.conversion_type).toBe(scenario.type);
+      expect(result.conversion_required).toBe(scenario.expected_conversion);
+      
+      if (scenario.expected_conversion) {
+        expect(result.conversion_fee).toBeGreaterThan(0);
+        expect(result.exchange_rate).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+8.3 Multi-Party Settlement Testing
+
+describe('Multi-Party Settlement with Currency Conversion', () => {
+  
+  test('should settle EUR→BTC transaction correctly', async () => {
+    const settlement = await processMultiCurrencySettlement({
+      buyer_payment: { amount: 93.05, currency: 'EUR' },
+      seller_payout: { amount: 0.00221, currency: 'BTC' },
+      management_tier_fee: { amount: 1.00, currency: 'USD' },
+      conversion_type: 'mixed_currency'
+    });
+    
+    expect(settlement.buyer_payment_status).toBe('completed');
+    expect(settlement.seller_payout_status).toBe('completed');
+    expect(settlement.management_tier_fee_status).toBe('collected');
+    expect(settlement.all_conversions_completed).toBe(true);
+  });
+  
+  test('should handle conversion failures gracefully', async () => {
+    const settlement = await processMultiCurrencySettlement({
+      buyer_payment: { amount: 100.50, currency: 'USD' },
+      seller_payout: { amount: 0.00221, currency: 'BTC' },
+      management_tier_fee: { amount: 1.00, currency: 'USD' },
+      simulate_crypto_failure: true
+    });
+    
+    expect(settlement.buyer_refund_status).toBe('processed');
+    expect(settlement.error_handling_status).toBe('completed');
+    expect(settlement.all_parties_notified).toBe(true);
+  });
+});
+
+8.4 Integration Testing with ComputePortal Tiers
+
+describe('ComputePortal Tier Integration', () => {
+  
+  test('should integrate with Client-Tier for multi-currency payments', async () => {
+    const clientTierResponse = await request(app)
+      .post('/api/v1/computeportal/client-tier/payment/init-multi-currency')
+      .send({
+        buyer_currency: 'EUR',
+        seller_currency: 'BTC',
+        transaction_amount: 100.00
+      });
+    
+    expect(clientTierResponse.status).toBe(200);
+    expect(clientTierResponse.body.conversion_scenario).toBe('mixed_currency');
+    expect(clientTierResponse.body.all_conversion_quotes).toBeDefined();
+  });
+  
+  test('should integrate with Management-Tier for fee collection', async () => {
+    const managementTierResponse = await request(app)
+      .get('/api/v1/computeportal/management-tier/fees/multi-currency-summary')
+      .query({ period: 'monthly' });
+    
+    expect(managementTierResponse.status).toBe(200);
+    expect(managementTierResponse.body.total_fees_by_currency).toBeDefined();
+    expect(managementTierResponse.body.conversion_volume).toBeDefined();
+  });
+});
+
+This comprehensive UEX backend specification now fully supports all four currency conversion scenarios with detailed workflows, API specifications, fee calculations, and testing frameworks for the ComputePortal Marketplace integration.
+

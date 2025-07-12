@@ -1,0 +1,795 @@
+Now I'll create a comprehensive development specification for the ComputePortal Marketplace Transaction Engine following the 3-tier architecture pattern with detailed features, requirements, and test cases for each tier.
+
+# ComputePortal Marketplace Transaction Engine Development Specification
+
+**Version:** 1.0  
+**Date:** July 11, 2025  
+**Document Type:** Software Development Specification  
+**Classification:** Internal Development  
+
+## Table of Contents
+
+1. [Executive Summary](#1-executive-summary)
+2. [Architecture Overview](#2-architecture-overview)
+3. [Client Tier Specifications](#3-client-tier-specifications)
+4. [Processing Tier Specifications](#4-processing-tier-specifications)
+5. [Management Tier Specifications](#5-management-tier-specifications)
+6. [Cross-Tier Integration](#6-cross-tier-integration)
+
+---
+
+## 1. Executive Summary
+
+### 1.1 Document Purpose
+
+This document provides detailed software development specifications for the ComputePortal Marketplace Transaction Engine, implementing a comprehensive decentralized compute marketplace using ComputePortal's existing 3-tier Kubernetes-native architecture. The system enables seamless discovery, negotiation, provisioning, and billing of compute resources with dashboard-controlled fee management (0.5% buyer + 0.5% seller fees).
+
+### 1.2 Architecture Integration
+
+The Marketplace Transaction Engine integrates with ComputePortal's existing infrastructure:
+- **Client Tier:** Web-based marketplace interface and admin dashboard
+- **Processing Tier:** Transaction processing and resource orchestration on edge clusters
+- **Management Tier:** Centralized marketplace coordination and billing management
+
+---
+
+## 2. Architecture Overview
+
+### 2.1 Three-Tier Marketplace Architecture
+
+```
+CLIENT TIER (Marketplace Frontend)
+├── Marketplace Web Interface
+├── Resource Discovery Portal
+├── Transaction Management Dashboard
+├── Admin Fee Management Console
+└── Real-time Analytics Dashboard
+
+PROCESSING TIER (Edge Transaction Processing)
+├── Resource Registry Agents
+├── Transaction Processing Pods
+├── Payment Gateway Integrations
+├── Resource Provisioning Controllers
+└── Local Transaction Caching
+
+MANAGEMENT TIER (Central Orchestration)
+├── Marketplace Orchestration Service
+├── Billing & Fee Management Engine
+├── Multi-cluster Resource Coordination
+├── Settlement & Compliance Service
+└── Analytics & Reporting System
+```
+
+---
+
+## 3. Client Tier Specifications
+
+### 3.1 Marketplace Web Interface
+
+#### Feature: Resource Discovery and Search
+**Feature Description:**  
+Provides users with an intuitive interface to discover, search, and filter available compute resources across the ComputePortal network.
+
+#### Feature Requirements:
+
+##### FR-CT-001: Advanced Resource Search
+- **Description:** Enable users to search for resources using multiple criteria
+- **Requirements:**
+  - Support filtering by resource type (CPU, GPU, Storage, Network)
+  - Implement price range filtering with real-time updates
+  - Enable geographic location-based filtering
+  - Provide SLA tier filtering (Bronze, Silver, Gold, Platinum)
+  - Support sorting by price, availability, and performance metrics
+
+##### FR-CT-002: Real-time Resource Availability
+- **Description:** Display real-time availability and pricing information
+- **Requirements:**
+  - Update resource availability every 30 seconds
+  - Display current pricing with dynamic updates
+  - Show resource utilization percentage
+  - Indicate estimated provisioning time
+  - Display provider ratings and reviews
+
+##### FR-CT-003: Resource Comparison Tool
+- **Description:** Allow users to compare multiple resources side-by-side
+- **Requirements:**
+  - Support comparison of up to 5 resources simultaneously
+  - Display specifications in tabular format
+  - Show pricing differences and calculations
+  - Include performance benchmarks when available
+  - Export comparison results as PDF/CSV
+
+#### Test Cases:
+
+##### TC-CT-001-001: Basic Resource Search
+- **Test Case:** Verify basic search functionality
+- **Steps:**
+  1. Navigate to marketplace homepage
+  2. Enter search criteria in search box
+  3. Click search button
+  4. Verify results display correctly
+- **Expected Result:** Relevant resources displayed with correct filtering
+
+##### TC-CT-001-002: Advanced Filter Application
+- **Test Case:** Verify advanced filtering works correctly
+- **Steps:**
+  1. Access advanced search filters
+  2. Select multiple filter criteria
+  3. Apply filters
+  4. Verify results match selected criteria
+- **Expected Result:** Only resources matching all filters displayed
+
+##### TC-CT-002-001: Real-time Price Updates
+- **Test Case:** Verify real-time price updates
+- **Steps:**
+  1. Display resource list
+  2. Wait for price update cycle (30 seconds)
+  3. Verify prices update automatically
+  4. Check timestamp of last update
+- **Expected Result:** Prices update automatically every 30 seconds
+
+##### TC-CT-003-001: Resource Comparison
+- **Test Case:** Verify resource comparison functionality
+- **Steps:**
+  1. Select 3 resources for comparison
+  2. Click compare button
+  3. Verify comparison table displays
+  4. Check all specifications are visible
+- **Expected Result:** Side-by-side comparison with all details
+
+### 3.2 Transaction Management Dashboard
+
+#### Feature: Order Placement and Management
+**Feature Description:**  
+Enables users to place orders, track transactions, and manage their marketplace activities.
+
+#### Feature Requirements:
+
+##### FR-CT-004: Order Creation Workflow
+- **Description:** Streamlined order placement process
+- **Requirements:**
+  - Support single and bulk resource ordering
+  - Implement order validation before submission
+  - Provide order cost calculation with fee breakdown
+  - Enable order scheduling for future dates
+  - Support order modification before confirmation
+
+##### FR-CT-005: Transaction History and Tracking
+- **Description:** Comprehensive transaction management
+- **Requirements:**
+  - Display complete transaction history
+  - Show real-time transaction status updates
+  - Provide transaction detail drill-down
+  - Enable transaction search and filtering
+  - Support transaction export (PDF, CSV, JSON)
+
+##### FR-CT-006: Payment Integration
+- **Description:** Secure payment processing interface
+- **Requirements:**
+  - Support multiple payment methods (credit card, bank transfer, crypto)
+  - Implement secure payment form with validation
+  - Display payment confirmation and receipts
+  - Support payment history and invoicing
+  - Enable automatic payment retry on failure
+
+#### Test Cases:
+
+##### TC-CT-004-001: Single Resource Order
+- **Test Case:** Verify single resource order placement
+- **Steps:**
+  1. Select a resource
+  2. Configure order parameters
+  3. Review order summary
+  4. Submit order
+- **Expected Result:** Order successfully placed with confirmation
+
+##### TC-CT-004-002: Bulk Order Placement
+- **Test Case:** Verify bulk resource ordering
+- **Steps:**
+  1. Select multiple resources
+  2. Configure bulk order parameters
+  3. Review total cost calculation
+  4. Submit bulk order
+- **Expected Result:** All resources ordered successfully
+
+##### TC-CT-005-001: Transaction History Display
+- **Test Case:** Verify transaction history functionality
+- **Steps:**
+  1. Navigate to transaction history
+  2. Verify all transactions displayed
+  3. Check transaction details
+  4. Test search functionality
+- **Expected Result:** Complete transaction history with search capability
+
+##### TC-CT-006-001: Payment Processing
+- **Test Case:** Verify payment processing
+- **Steps:**
+  1. Complete order and proceed to payment
+  2. Enter payment information
+  3. Submit payment
+  4. Verify payment confirmation
+- **Expected Result:** Payment processed successfully with confirmation
+
+### 3.3 Admin Fee Management Console
+
+#### Feature: Dynamic Fee Configuration
+**Feature Description:**  
+Provides administrators with comprehensive fee management capabilities through an intuitive dashboard interface.
+
+#### Feature Requirements:
+
+##### FR-CT-007: Fee Structure Configuration
+- **Description:** Real-time fee adjustment interface
+- **Requirements:**
+  - Provide slider controls for buyer fees (0.1% - 5.0%)
+  - Provide slider controls for seller fees (0.1% - 5.0%)
+  - Enable fee preview with calculation examples
+  - Support fee scheduling for future dates
+  - Implement fee change approval workflows
+
+##### FR-CT-008: Fee Analytics Dashboard
+- **Description:** Comprehensive fee performance analytics
+- **Requirements:**
+  - Display fee revenue metrics in real-time
+  - Show fee optimization recommendations
+  - Provide fee elasticity analysis charts
+  - Support A/B testing of fee structures
+  - Generate fee performance reports
+
+##### FR-CT-009: Fee Tier Management
+- **Description:** Volume-based fee tier configuration
+- **Requirements:**
+  - Support transaction volume-based fee tiers
+  - Enable resource type-specific fee structures
+  - Implement customer segment-based fee rules
+  - Support geographic region fee variations
+  - Provide fee tier performance analytics
+
+#### Test Cases:
+
+##### TC-CT-007-001: Basic Fee Adjustment
+- **Test Case:** Verify fee adjustment functionality
+- **Steps:**
+  1. Access fee management console
+  2. Adjust buyer fee slider to 0.7%
+  3. Adjust seller fee slider to 0.6%
+  4. Preview fee calculation
+  5. Apply changes
+- **Expected Result:** Fees updated successfully with preview
+
+##### TC-CT-007-002: Fee Scheduling
+- **Test Case:** Verify fee scheduling functionality
+- **Steps:**
+  1. Schedule fee change for future date
+  2. Configure new fee structure
+  3. Set effective date and time
+  4. Confirm schedule
+- **Expected Result:** Fee change scheduled successfully
+
+##### TC-CT-008-001: Fee Analytics Display
+- **Test Case:** Verify fee analytics dashboard
+- **Steps:**
+  1. Access fee analytics dashboard
+  2. Verify revenue metrics display
+  3. Check chart rendering
+  4. Test date range filtering
+- **Expected Result:** Analytics display correctly with accurate data
+
+##### TC-CT-009-001: Fee Tier Configuration
+- **Test Case:** Verify fee tier management
+- **Steps:**
+  1. Access fee tier configuration
+  2. Create new volume-based tier
+  3. Set tier parameters
+  4. Save configuration
+- **Expected Result:** Fee tier created and active
+
+---
+
+## 4. Processing Tier Specifications
+
+### 4.1 Resource Registry Agents
+
+#### Feature: Distributed Resource Discovery
+**Feature Description:**  
+Kubernetes pods running on edge clusters that maintain local resource registries and synchronize with the central management tier.
+
+#### Feature Requirements:
+
+##### FR-PT-001: Local Resource Inventory
+- **Description:** Maintain accurate local resource inventory
+- **Requirements:**
+  - Continuously monitor local resource availability
+  - Track resource utilization in real-time
+  - Maintain resource specification database
+  - Support resource reservation and allocation
+  - Implement resource health monitoring
+
+##### FR-PT-002: Resource Registry Synchronization
+- **Description:** Synchronize local registry with central management
+- **Requirements:**
+  - Sync resource data every 30 seconds
+  - Handle network interruptions gracefully
+  - Implement conflict resolution for resource states
+  - Support batch synchronization for efficiency
+  - Maintain synchronization audit logs
+
+##### FR-PT-003: Resource Advertising
+- **Description:** Advertise available resources to the marketplace
+- **Requirements:**
+  - Publish resource availability to central registry
+  - Include pricing and SLA information
+  - Support dynamic pricing based on demand
+  - Implement resource bidding capabilities
+  - Handle resource reservation requests
+
+#### Test Cases:
+
+##### TC-PT-001-001: Resource Discovery
+- **Test Case:** Verify local resource discovery
+- **Steps:**
+  1. Deploy resource registry agent
+  2. Wait for resource discovery cycle
+  3. Verify resources detected
+  4. Check resource specifications
+- **Expected Result:** All local resources discovered and cataloged
+
+##### TC-PT-001-002: Resource Utilization Monitoring
+- **Test Case:** Verify resource utilization tracking
+- **Steps:**
+  1. Start resource utilization monitoring
+  2. Create test workload
+  3. Monitor utilization changes
+  4. Verify utilization reporting
+- **Expected Result:** Accurate utilization metrics reported
+
+##### TC-PT-002-001: Registry Synchronization
+- **Test Case:** Verify registry synchronization
+- **Steps:**
+  1. Make local registry changes
+  2. Wait for sync cycle
+  3. Verify changes propagated
+  4. Check central registry state
+- **Expected Result:** Local changes synchronized to central registry
+
+##### TC-PT-003-001: Resource Advertising
+- **Test Case:** Verify resource advertising
+- **Steps:**
+  1. Configure resource for advertising
+  2. Set pricing parameters
+  3. Publish to marketplace
+  4. Verify resource appears in search
+- **Expected Result:** Resource successfully advertised and discoverable
+
+### 4.2 Transaction Processing Pods
+
+#### Feature: Distributed Transaction Processing
+**Feature Description:**  
+Kubernetes pods that handle transaction processing, order matching, and resource allocation on edge clusters.
+
+#### Feature Requirements:
+
+##### FR-PT-004: Order Processing Engine
+- **Description:** Process marketplace orders and transactions
+- **Requirements:**
+  - Handle order validation and verification
+  - Implement order matching algorithms
+  - Support transaction state management
+  - Process payment authorizations
+  - Handle order cancellations and refunds
+
+##### FR-PT-005: Resource Allocation Controller
+- **Description:** Manage resource allocation and provisioning
+- **Requirements:**
+  - Allocate resources based on order requirements
+  - Implement resource scheduling algorithms
+  - Support resource preemption and migration
+  - Handle resource lifecycle management
+  - Provide resource allocation APIs
+
+##### FR-PT-006: Transaction Fee Processing
+- **Description:** Process transaction fees according to configured rates
+- **Requirements:**
+  - Calculate fees based on current fee structure
+  - Apply volume-based fee tiers
+  - Handle multi-party fee distribution
+  - Support fee refunds and adjustments
+  - Maintain fee calculation audit trails
+
+#### Test Cases:
+
+##### TC-PT-004-001: Order Processing
+- **Test Case:** Verify order processing functionality
+- **Steps:**
+  1. Submit test order
+  2. Verify order validation
+  3. Check order state transitions
+  4. Confirm order completion
+- **Expected Result:** Order processed successfully through all states
+
+##### TC-PT-004-002: Order Matching
+- **Test Case:** Verify order matching algorithm
+- **Steps:**
+  1. Submit buy order
+  2. Submit matching sell order
+  3. Verify orders matched
+  4. Check transaction creation
+- **Expected Result:** Orders matched and transaction created
+
+##### TC-PT-005-001: Resource Allocation
+- **Test Case:** Verify resource allocation
+- **Steps:**
+  1. Submit resource allocation request
+  2. Verify resource availability check
+  3. Confirm resource allocation
+  4. Check resource status update
+- **Expected Result:** Resource allocated successfully
+
+##### TC-PT-006-001: Fee Calculation
+- **Test Case:** Verify fee calculation
+- **Steps:**
+  1. Process transaction with $1000 value
+  2. Verify buyer fee calculation (0.5%)
+  3. Verify seller fee calculation (0.5%)
+  4. Check fee distribution
+- **Expected Result:** Fees calculated correctly: $5 buyer, $5 seller
+
+### 4.3 Payment Gateway Integrations
+
+#### Feature: Multi-Payment Gateway Support
+**Feature Description:**  
+Integration with multiple payment gateways to support various payment methods and ensure transaction reliability.
+
+#### Feature Requirements:
+
+##### FR-PT-007: Payment Gateway Abstraction
+- **Description:** Abstract payment gateway implementations
+- **Requirements:**
+  - Support multiple payment gateways (Stripe, PayPal, Square)
+  - Implement payment gateway failover
+  - Handle payment method validation
+  - Support payment tokenization
+  - Provide unified payment API
+
+##### FR-PT-008: Payment Processing Pipeline
+- **Description:** Secure payment processing workflow
+- **Requirements:**
+  - Implement secure payment authorization
+  - Handle payment capture and settlement
+  - Support payment retry mechanisms
+  - Process refunds and chargebacks
+  - Maintain PCI DSS compliance
+
+##### FR-PT-009: Cryptocurrency Support
+- **Description:** Support cryptocurrency payments
+- **Requirements:**
+  - Integrate with crypto payment processors
+  - Support major cryptocurrencies (BTC, ETH, USDC)
+  - Handle crypto price volatility
+  - Implement crypto wallet integration
+  - Support crypto-to-fiat conversion
+
+#### Test Cases:
+
+##### TC-PT-007-001: Payment Gateway Selection
+- **Test Case:** Verify payment gateway selection
+- **Steps:**
+  1. Configure multiple payment gateways
+  2. Process test payment
+  3. Verify gateway selection logic
+  4. Check payment processing
+- **Expected Result:** Appropriate gateway selected and payment processed
+
+##### TC-PT-007-002: Payment Gateway Failover
+- **Test Case:** Verify payment gateway failover
+- **Steps:**
+  1. Configure primary and backup gateways
+  2. Disable primary gateway
+  3. Process payment
+  4. Verify failover to backup
+- **Expected Result:** Payment processed via backup gateway
+
+##### TC-PT-008-001: Payment Authorization
+- **Test Case:** Verify payment authorization
+- **Steps:**
+  1. Submit payment with valid card
+  2. Verify authorization request
+  3. Check authorization response
+  4. Confirm payment status
+- **Expected Result:** Payment authorized successfully
+
+##### TC-PT-009-001: Cryptocurrency Payment
+- **Test Case:** Verify cryptocurrency payment
+- **Steps:**
+  1. Select cryptocurrency payment method
+  2. Generate payment address
+  3. Verify payment receipt
+  4. Confirm transaction completion
+- **Expected Result:** Cryptocurrency payment processed successfully
+
+---
+
+## 5. Management Tier Specifications
+
+### 5.1 Marketplace Orchestration Service
+
+#### Feature: Multi-Cluster Marketplace Coordination
+**Feature Description:**  
+Central orchestration service that coordinates marketplace operations across all edge clusters and manages global marketplace state.
+
+#### Feature Requirements:
+
+##### FR-MT-001: Cluster Coordination
+- **Description:** Coordinate marketplace operations across clusters
+- **Requirements:**
+  - Manage global resource registry
+  - Coordinate cross-cluster transactions
+  - Handle cluster failover and recovery
+  - Implement load balancing across clusters
+  - Support cluster scaling and deployment
+
+##### FR-MT-002: Global State Management
+- **Description:** Maintain consistent global marketplace state
+- **Requirements:**
+  - Implement distributed state consensus
+  - Handle state synchronization conflicts
+  - Support state backup and recovery
+  - Maintain state change audit logs
+  - Provide state query and reporting APIs
+
+##### FR-MT-003: Marketplace Analytics Engine
+- **Description:** Comprehensive marketplace analytics and reporting
+- **Requirements:**
+  - Track marketplace performance metrics
+  - Generate revenue and usage reports
+  - Implement predictive analytics
+  - Support custom dashboard creation
+  - Provide real-time analytics APIs
+
+#### Test Cases:
+
+##### TC-MT-001-001: Cluster Registration
+- **Test Case:** Verify cluster registration
+- **Steps:**
+  1. Deploy new edge cluster
+  2. Register cluster with management tier
+  3. Verify cluster appears in registry
+  4. Check cluster health status
+- **Expected Result:** Cluster registered and healthy
+
+##### TC-MT-001-002: Cross-Cluster Transaction
+- **Test Case:** Verify cross-cluster transaction
+- **Steps:**
+  1. Submit order requiring resources from multiple clusters
+  2. Verify resource allocation across clusters
+  3. Check transaction coordination
+  4. Confirm successful completion
+- **Expected Result:** Cross-cluster transaction completed successfully
+
+##### TC-MT-002-001: State Synchronization
+- **Test Case:** Verify state synchronization
+- **Steps:**
+  1. Make state changes in cluster A
+  2. Verify propagation to cluster B
+  3. Check state consistency
+  4. Verify conflict resolution
+- **Expected Result:** State synchronized consistently across clusters
+
+##### TC-MT-003-001: Analytics Generation
+- **Test Case:** Verify analytics generation
+- **Steps:**
+  1. Generate marketplace analytics report
+  2. Verify data accuracy
+  3. Check report formatting
+  4. Confirm export functionality
+- **Expected Result:** Accurate analytics report generated
+
+### 5.2 Billing & Fee Management Engine
+
+#### Feature: Centralized Billing and Fee Management
+**Feature Description:**  
+Comprehensive billing system that processes transaction fees, manages fee structures, and handles financial settlement.
+
+#### Feature Requirements:
+
+##### FR-MT-004: Fee Structure Management
+- **Description:** Centralized fee configuration and management
+- **Requirements:**
+  - Store global fee configuration
+  - Support fee tier definitions
+  - Handle fee change propagation
+  - Implement fee approval workflows
+  - Maintain fee change history
+
+##### FR-MT-005: Billing Processing Engine
+- **Description:** Automated billing and invoice generation
+- **Requirements:**
+  - Process transaction fees automatically
+  - Generate invoices and receipts
+  - Handle billing cycles and schedules
+  - Support multiple currencies
+  - Implement billing dispute resolution
+
+##### FR-MT-006: Financial Settlement
+- **Description:** Comprehensive financial settlement system
+- **Requirements:**
+  - Process payouts to resource providers
+  - Handle escrow and payment holds
+  - Support multiple payout methods
+  - Implement settlement reconciliation
+  - Maintain financial audit trails
+
+#### Test Cases:
+
+##### TC-MT-004-001: Fee Configuration Update
+- **Test Case:** Verify fee configuration update
+- **Steps:**
+  1. Update fee structure in management console
+  2. Verify configuration propagation
+  3. Check fee calculation updates
+  4. Confirm historical tracking
+- **Expected Result:** Fee structure updated across all clusters
+
+##### TC-MT-004-002: Fee Approval Workflow
+- **Test Case:** Verify fee approval workflow
+- **Steps:**
+  1. Submit fee change requiring approval
+  2. Route to approver
+  3. Verify approval process
+  4. Check implementation after approval
+- **Expected Result:** Fee change approved and implemented
+
+##### TC-MT-005-001: Invoice Generation
+- **Test Case:** Verify invoice generation
+- **Steps:**
+  1. Complete transaction with fees
+  2. Trigger invoice generation
+  3. Verify invoice accuracy
+  4. Check invoice delivery
+- **Expected Result:** Accurate invoice generated and delivered
+
+##### TC-MT-006-001: Provider Payout
+- **Test Case:** Verify provider payout processing
+- **Steps:**
+  1. Complete transaction with provider
+  2. Calculate provider payout
+  3. Process payout
+  4. Verify payout completion
+- **Expected Result:** Provider payout processed successfully
+
+### 5.3 Settlement & Compliance Service
+
+#### Feature: Regulatory Compliance and Audit
+**Feature Description:**  
+Comprehensive compliance management system ensuring regulatory adherence and audit trail maintenance.
+
+#### Feature Requirements:
+
+##### FR-MT-007: Compliance Monitoring
+- **Description:** Monitor and ensure regulatory compliance
+- **Requirements:**
+  - Implement KYC/AML verification
+  - Monitor transaction patterns
+  - Generate compliance reports
+  - Handle regulatory notifications
+  - Support compliance audits
+
+##### FR-MT-008: Audit Trail Management
+- **Description:** Comprehensive audit trail system
+- **Requirements:**
+  - Log all system transactions
+  - Maintain immutable audit logs
+  - Support audit log queries
+  - Implement log retention policies
+  - Provide audit report generation
+
+##### FR-MT-009: Risk Management
+- **Description:** Transaction risk assessment and management
+- **Requirements:**
+  - Implement fraud detection algorithms
+  - Monitor transaction patterns
+  - Support transaction blocking
+  - Handle risk score calculations
+  - Provide risk management dashboards
+
+#### Test Cases:
+
+##### TC-MT-007-001: KYC Verification
+- **Test Case:** Verify KYC verification process
+- **Steps:**
+  1. Submit KYC verification request
+  2. Process verification documents
+  3. Verify approval/rejection
+  4. Check user status update
+- **Expected Result:** KYC verification completed successfully
+
+##### TC-MT-007-002: Compliance Report Generation
+- **Test Case:** Verify compliance report generation
+- **Steps:**
+  1. Generate compliance report
+  2. Verify report accuracy
+  3. Check regulatory requirements
+  4. Confirm report delivery
+- **Expected Result:** Accurate compliance report generated
+
+##### TC-MT-008-001: Audit Log Creation
+- **Test Case:** Verify audit log creation
+- **Steps:**
+  1. Perform system transaction
+  2. Verify audit log entry
+  3. Check log completeness
+  4. Verify log immutability
+- **Expected Result:** Complete audit log entry created
+
+##### TC-MT-009-001: Fraud Detection
+- **Test Case:** Verify fraud detection
+- **Steps:**
+  1. Simulate suspicious transaction
+  2. Verify fraud detection trigger
+  3. Check risk score calculation
+  4. Confirm transaction blocking
+- **Expected Result:** Fraudulent transaction detected and blocked
+
+---
+
+## 6. Cross-Tier Integration
+
+### 6.1 API Gateway Integration
+
+#### Feature: Unified API Management
+**Feature Description:**  
+Centralized API gateway managing all inter-tier communication and external API access.
+
+#### Feature Requirements:
+
+##### FR-CI-001: API Gateway Configuration
+- **Description:** Centralized API gateway management
+- **Requirements:**
+  - Route API requests to appropriate tiers
+  - Implement API rate limiting
+  - Handle API authentication and authorization
+  - Support API versioning
+  - Provide API monitoring and analytics
+
+#### Test Cases:
+
+##### TC-CI-001-001: API Routing
+- **Test Case:** Verify API routing functionality
+- **Steps:**
+  1. Send API request to gateway
+  2. Verify request routing
+  3. Check response handling
+  4. Confirm proper tier communication
+- **Expected Result:** API request routed correctly to appropriate tier
+
+### 6.2 Event-Driven Architecture
+
+#### Feature: Inter-Tier Event Communication
+**Feature Description:**  
+Event-driven communication system enabling real-time updates across all tiers.
+
+#### Feature Requirements:
+
+##### FR-CI-002: Event Publishing and Subscription
+- **Description:** Event-driven communication system
+- **Requirements:**
+  - Implement event publishing mechanisms
+  - Support event subscription and routing
+  - Handle event ordering and delivery
+  - Provide event replay capabilities
+  - Support event filtering and transformation
+
+#### Test Cases:
+
+##### TC-CI-002-001: Event Publishing
+- **Test Case:** Verify event publishing
+- **Steps:**
+  1. Publish test event
+  2. Verify event delivery
+  3. Check event format
+  4. Confirm subscriber reception
+- **Expected Result:** Event published and received successfully
+
+---
+
+This comprehensive development specification provides the foundation for implementing the ComputePortal Marketplace Transaction Engine across all three tiers of the existing architecture. Each feature includes detailed requirements and comprehensive test cases to ensure proper implementation and validation.
