@@ -12,10 +12,13 @@ import { notFoundHandler } from './middleware/notFoundHandler'
 import { feeManagementRoutes } from './routes/feeManagementRoutes'
 import { analyticsRoutes } from './routes/analyticsRoutes'
 import { settlementRoutes } from './routes/settlementRoutes'
+import { integrationRoutes } from './routes/integrationRoutes'
+import uexIntegrationRoutes from './routes/uexIntegrationRoutes'
 import { MarketplaceOrchestrationService } from './services/MarketplaceOrchestrationService'
 import { BillingEngine } from './services/BillingEngine'
 import { SettlementService } from './services/SettlementService'
-import { integrationRoutes } from './routes/integrationRoutes'
+import paymentRoutes from './routes/paymentRoutes';
+
 
 // Load environment variables
 dotenv.config()
@@ -24,17 +27,20 @@ const app = express()
 const server = createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: process.env['CLIENT_URL'] || 'http://localhost:3000',
     methods: ['GET', 'POST']
   }
 })
 
 // Middleware
-app.use(helmet())
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true
-}))
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+}));
+app.use(helmet())
 app.use(compression())
 app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }))
 app.use(express.json({ limit: '10mb' }))
@@ -51,9 +57,11 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/fees', feeManagementRoutes)
+app.use('/api/payments', paymentRoutes);
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/settlement', settlementRoutes)
 app.use('/api/management/integration', integrationRoutes)
+app.use('/api/uex', uexIntegrationRoutes)
 
 // Error handling
 app.use(notFoundHandler)
@@ -71,6 +79,11 @@ io.on('connection', (socket) => {
   socket.on('subscribe:fees', () => {
     socket.join('fees')
     logger.info(`Client ${socket.id} subscribed to fee updates`)
+  })
+
+  socket.on('subscribe:uex', () => {
+    socket.join('uex')
+    logger.info(`Client ${socket.id} subscribed to UEX updates`)
   })
 
   socket.on('disconnect', () => {
@@ -91,11 +104,11 @@ settlementService.start()
 // Export io instance for use in other modules
 export { io }
 
-const PORT = process.env.PORT || 9000
+const PORT = process.env['PORT'] || 9000
 
 server.listen(PORT, () => {
   logger.info(`Management tier server running on port ${PORT}`)
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`)
+  logger.info(`Environment: ${process.env['NODE_ENV'] || 'development'}`)
 })
 
 // Graceful shutdown

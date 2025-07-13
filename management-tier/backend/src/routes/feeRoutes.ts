@@ -25,7 +25,13 @@ let feeConfig = {
       sellerFee: 0.4
     }
   ],
-  scheduledChanges: []
+  scheduledChanges: [] as Array<{
+    id: string;
+    effectiveDate: any;
+    buyerFee: any;
+    sellerFee: any;
+    status: string;
+  }>
 }
 
 // GET /api/fees/config
@@ -106,10 +112,10 @@ router.put('/tiers/:id', (req, res) => {
     feeConfig.tiers[tierIndex] = { ...feeConfig.tiers[tierIndex], ...updates }
     
     logger.info(`Fee tier updated: ${id}`)
-    res.json(feeConfig.tiers[tierIndex])
+    return res.json(feeConfig.tiers[tierIndex])
   } catch (error) {
     logger.error('Update fee tier error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    return res.status(500).json({ error: 'Internal server error' })
   }
 })
 
@@ -126,10 +132,10 @@ router.delete('/tiers/:id', (req, res) => {
     feeConfig.tiers.splice(tierIndex, 1)
     
     logger.info(`Fee tier deleted: ${id}`)
-    res.status(204).send()
+    return res.status(204).send()
   } catch (error) {
     logger.error('Delete fee tier error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    return res.status(500).json({ error: 'Internal server error' })
   }
 })
 

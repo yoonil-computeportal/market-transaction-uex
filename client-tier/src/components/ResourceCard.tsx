@@ -9,6 +9,7 @@ import {
   MapPinIcon,
   ClockIcon
 } from '@heroicons/react/24/outline'
+import { useNavigate } from 'react-router-dom';
 
 interface ResourceCardProps {
   resource: Resource
@@ -45,6 +46,7 @@ const getSlaColor = (sla: string) => {
 }
 
 export const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
+  const navigate = useNavigate();
   return (
     <div className="card hover:shadow-md transition-shadow duration-200">
       {/* Header */}
@@ -132,6 +134,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({ resource }) => {
       <button
         className="w-full btn-primary mt-4"
         disabled={resource.availability === 0}
+        onClick={() => navigate(`/checkout/${resource.id}`)}
       >
         {resource.availability > 0 ? 'Order Now' : 'Out of Stock'}
       </button>

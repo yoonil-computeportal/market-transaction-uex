@@ -49,10 +49,10 @@ router.get('/clusters/:id', (req, res) => {
       return res.status(404).json({ error: 'Cluster not found' })
     }
     
-    res.json(cluster)
+    return res.json(cluster)
   } catch (error) {
     logger.error('Get cluster error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    return res.status(500).json({ error: 'Internal server error' })
   }
 })
 

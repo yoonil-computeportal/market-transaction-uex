@@ -13,6 +13,7 @@ import { resourceRoutes } from './routes/resourceRoutes'
 import { orderRoutes } from './routes/orderRoutes'
 import { transactionRoutes } from './routes/transactionRoutes'
 import { paymentRoutes } from './routes/paymentRoutes'
+import uexRoutes from './routes/uexRoutes'
 import { ResourceRegistryAgent } from './services/ResourceRegistryAgent'
 import { TransactionProcessor } from './services/TransactionProcessor'
 import { PaymentGateway } from './services/PaymentGateway'
@@ -54,6 +55,7 @@ app.use('/api/resources', resourceRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/transactions', transactionRoutes)
 app.use('/api/payments', paymentRoutes)
+app.use('/api/uex', uexRoutes)
 
 // Error handling
 app.use(notFoundHandler)

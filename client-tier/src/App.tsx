@@ -6,6 +6,7 @@ import { TransactionHistory } from './pages/TransactionHistory'
 import { ResourceComparison } from './pages/ResourceComparison'
 import { OrderManagement } from './pages/OrderManagement'
 import { PaymentCenter } from './pages/PaymentCenter'
+import Checkout from './pages/Checkout'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/compare" element={<ResourceComparison />} />
           <Route path="/orders" element={<OrderManagement />} />
           <Route path="/payments" element={<PaymentCenter />} />
+          <Route path="/checkout/:resourceId" element={<Checkout />} />
         </Routes>
       </main>
     </div>

@@ -6,7 +6,8 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/fee-management', label: 'Fee Management', icon: '💰' }
+    { path: '/fee-management', label: 'Fee Management', icon: '💰' },
+    { path: '/payment-workflow', label: 'Payment Workflow', icon: '🔄' },
   ]
 
   return (

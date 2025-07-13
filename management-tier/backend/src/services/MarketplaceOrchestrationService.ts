@@ -287,7 +287,7 @@ export class MarketplaceOrchestrationService {
     const result = await this.db.query(`
       SELECT * FROM clusters 
       WHERE id != $1 AND status = 'active'
-      ORDER BY load ASC
+      ORDER BY created_at ASC
       LIMIT 1
     `, [failedClusterId])
     

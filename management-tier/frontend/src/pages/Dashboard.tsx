@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { apiService, PaymentTransaction } from '../services/api'
 
 interface Analytics {
   totalTransactions: number
@@ -13,10 +14,12 @@ interface Analytics {
 
 const Dashboard: React.FC = () => {
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [payments, setPayments] = useState<PaymentTransaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [paymentsLoading, setPaymentsLoading] = useState(true)
 
   useEffect(() => {
-    // Mock API call
+    // Mock API call for analytics
     setTimeout(() => {
       setAnalytics({
         totalTransactions: 1250,
@@ -31,7 +34,52 @@ const Dashboard: React.FC = () => {
       })
       setLoading(false)
     }, 1000)
+
+    // Fetch real payment transactions
+    const fetchPayments = async () => {
+      try {
+        const data = await apiService.getPayments()
+        setPayments(data)
+      } catch (error) {
+        console.error('Error fetching payments:', error)
+      } finally {
+        setPaymentsLoading(false)
+      }
+    }
+
+    fetchPayments()
   }, [])
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'initiated': return 'bg-blue-500'
+      case 'processing': return 'bg-yellow-500'
+      case 'settled': return 'bg-green-500'
+      case 'failed': return 'bg-red-500'
+      default: return 'bg-gray-500'
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'initiated': return 'Initiated'
+      case 'processing': return 'Processing'
+      case 'settled': return 'Settled'
+      case 'failed': return 'Failed'
+      default: return status
+    }
+  }
+
+  const formatCurrency = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+    }).format(amount)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString()
+  }
 
   if (loading) {
     return (
@@ -102,6 +150,75 @@ const Dashboard: React.FC = () => {
               <p className="text-2xl font-bold text-gray-900">{analytics.resourceUtilization}%</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Recent Payment Transactions */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">Recent Payment Transactions</h2>
+          <p className="text-sm text-gray-600 mt-1">Latest payment activities</p>
+        </div>
+        <div className="overflow-x-auto">
+          {paymentsLoading ? (
+            <div className="p-6 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+            </div>
+          ) : payments.length > 0 ? (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Transaction ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Client
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {payments.slice(0, 5).map((payment) => (
+                  <tr key={payment.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {payment.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {payment.client_id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatCurrency(payment.amount, payment.currency)}
+                      {payment.currency !== payment.target_currency && (
+                        <span className="text-xs text-gray-500 ml-1">
+                          → {payment.target_currency}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.status)} text-white`}>
+                        {getStatusText(payment.status)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDate(payment.created_at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="p-6 text-center text-gray-500">
+              No payment transactions found
+            </div>
+          )}
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Navigation from './components/Navigation'
 import FeeManagement from './pages/FeeManagement'
 import Dashboard from './pages/Dashboard'
+import PaymentWorkflow from './pages/PaymentWorkflow';
 import './index.css'
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/fee-management" element={<FeeManagement />} />
+            <Route path="/payment-workflow" element={<PaymentWorkflow />} />
           </Routes>
         </main>
       </div>
