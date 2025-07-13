@@ -9,10 +9,11 @@ export const OrderManagement: React.FC = () => {
     page: 1,
     limit: 20
   })
+  const [userId, setUserId] = useState('user-1'); // 기본값을 user-1로
 
   const { data: ordersData, isLoading, error } = useQuery(
-    ['orders', filters],
-    () => orderApi.getUserOrders({ ...filters, userId: 'user-1' }),
+    ['orders', filters, userId],
+    () => orderApi.getUserOrders({ ...filters, userId }),
     {
       refetchInterval: 30000,
     }
@@ -27,9 +28,19 @@ export const OrderManagement: React.FC = () => {
         </p>
       </div>
 
-      {/* Filters */}
+      {/* User ID 입력 필드 */}
       <div className="card">
         <div className="flex items-center space-x-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+            <input
+              type="text"
+              value={userId}
+              onChange={e => setUserId(e.target.value)}
+              className="input-field w-auto"
+              placeholder="User ID로 주문 조회"
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
@@ -65,7 +76,7 @@ export const OrderManagement: React.FC = () => {
       )}
 
       {/* Orders List */}
-      {ordersData && !isLoading && (
+      {!isLoading && Array.isArray(ordersData?.data) && (
         <div className="space-y-4">
           {ordersData.data.map((order: Order) => (
             <div key={order.id} className="card">
@@ -81,7 +92,6 @@ export const OrderManagement: React.FC = () => {
                     {order.resources.length} resources
                   </p>
                 </div>
-                
                 <div className="text-right">
                   <div className="text-lg font-bold text-gray-900">
                     ${order.totalAmount.toFixed(2)}

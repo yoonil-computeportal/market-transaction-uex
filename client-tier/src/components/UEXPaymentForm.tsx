@@ -8,19 +8,6 @@ interface UEXPaymentFormProps {
   initialValues?: Partial<UEXPaymentRequest & { resourceId?: string; resourceName?: string }>;
 }
 
-export interface UEXPaymentRequest {
-  client_id: string;
-  seller_id: string;
-  amount: number;
-  currency: string;
-  target_currency: string;
-  payment_method: 'fiat' | 'crypto';
-  settlement_method: 'bank' | 'blockchain';
-  metadata?: Record<string, any>;
-  resourceId?: string;
-  resourceName?: string;
-}
-
 const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({ 
   onPaymentSuccess, 
   onPaymentError, 
@@ -56,7 +43,7 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
       // Process payment via UEX backend
       const paymentResponse = await UEXApiService.processPayment(formData);
       // Create order in marketplace backend
-      await orderApi.create({
+      const order = await orderApi.create({
         userId: formData.client_id,
         resources: [{
           resourceId: initialValues?.resourceId || '',
@@ -68,8 +55,59 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
         currency: formData.currency,
         status: 'pending',
       });
+      // 결제 성공 후 management-tier에 트랜잭션 저장
+      await fetch('http://localhost:9000/api/management/integration/transactions/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionId: paymentResponse.transaction_id,
+          orderId: order.id,
+          userId: formData.client_id,
+          status: paymentResponse.status,
+          amount: paymentResponse.amount,
+          fees: paymentResponse.fees?.total_fee ?? 0,
+        }),
+      });
       setResponse(paymentResponse);
       onPaymentSuccess?.(paymentResponse);
+
+      // 결제 상태 polling 및 management-tier에 상태 동기화
+      const pollTransactionStatus = async (transactionId: string, userId: string) => {
+        let lastStatus = paymentResponse.status;
+        let settled = false;
+        while (!settled) {
+          try {
+            const res = await fetch(`http://localhost:3001/api/payments/transaction/${transactionId}/status`);
+            const data = await res.json();
+            const status = data.data.status;
+            if (status !== lastStatus) {
+              // 상태가 바뀌면 management-tier에 업데이트
+              await fetch('http://localhost:9000/api/management/integration/transactions/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  transactionId,
+                  orderId: order.id,
+                  userId,
+                  status,
+                  amount: paymentResponse.amount,
+                  fees: paymentResponse.fees?.total_fee ?? 0,
+                }),
+              });
+              lastStatus = status;
+            }
+            if (status === 'settled' || status === 'failed') {
+              settled = true;
+            } else {
+              await new Promise(res => setTimeout(res, 3000)); // 3초 대기 후 재시도
+            }
+          } catch (err) {
+            // 네트워크 오류 등은 무시하고 재시도
+            await new Promise(res => setTimeout(res, 3000));
+          }
+        }
+      };
+      pollTransactionStatus(paymentResponse.transaction_id, formData.client_id);
     } catch (err: any) {
       setLoading(false);
       const errorMessage = err.message || 'Payment failed';
