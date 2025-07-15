@@ -123,30 +123,14 @@ export const TransactionHistory: React.FC = () => {
                 
                 <div className="text-right">
                   <div className="text-lg font-bold text-gray-900">
-                    ${(transaction.amount || 0).toFixed(2)}
+                    ${(transaction.total_amount || transaction.amount || 0).toFixed(2)}
                   </div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(transaction.status || 'unknown')}`}>
-                    {transaction.status || 'Unknown'}
+                    {String(transaction.status || 'Unknown')}
                   </span>
                 </div>
               </div>
-              {/* Fee Breakdown */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Conversion Fee:</span>
-                    <span className="ml-2 font-medium">{`$${Number.isFinite(transaction.conversion_fee) ? (transaction.conversion_fee as number).toFixed(2) : '0.00'}`}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Management Fee:</span>
-                    <span className="ml-2 font-medium">{`$${Number.isFinite(transaction.management_fee) ? (transaction.management_fee as number).toFixed(2) : '0.00'}`}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Total Amount:</span>
-                    <span className="ml-2 font-medium">${(transaction.total_amount || 0).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
+
             </div>
           ))}
         </div>

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { logger } from '../utils/logger'
+import { UEXIntegrationService } from '../services/UEXIntegrationService'
 
 const router = Router()
 
@@ -18,6 +19,42 @@ const clearOldOrders = () => {
 // Initialize with clean state (no old orders)
 orders.length = 0
 logger.info('Cleared all old orders - starting with clean state')
+
+// Function to update order status based on UEX transaction status
+const updateOrderStatusFromUEX = async (orderId: string, uexTransactionId: string) => {
+  try {
+    const uexStatus = await UEXIntegrationService.getTransactionStatus(uexTransactionId)
+    
+    // Map UEX status to order status
+    let orderStatus = 'pending'
+    switch (uexStatus.status) {
+      case 'completed':
+        orderStatus = 'completed'
+        break
+      case 'processing':
+        orderStatus = 'processing'
+        break
+      case 'failed':
+        orderStatus = 'cancelled'
+        break
+      case 'cancelled':
+        orderStatus = 'cancelled'
+        break
+      default:
+        orderStatus = 'pending'
+    }
+    
+    // Update order status
+    const orderIndex = orders.findIndex(o => o.id === orderId)
+    if (orderIndex !== -1) {
+      orders[orderIndex].status = orderStatus
+      orders[orderIndex].updatedAt = new Date().toISOString()
+      logger.info(`Order ${orderId} status updated to ${orderStatus} based on UEX transaction ${uexTransactionId}`)
+    }
+  } catch (error) {
+    logger.error(`Failed to update order status for ${orderId}:`, error)
+  }
+}
 
 // POST /api/orders
 router.post('/', (req, res) => {
@@ -45,6 +82,12 @@ router.post('/', (req, res) => {
     orders.push(newOrder)
     
     logger.info(`Order created: ${newOrder.id} with UEX transaction: ${newOrder.uexTransactionId}`)
+    
+    // Update order status based on UEX transaction status
+    if (newOrder.uexTransactionId) {
+      updateOrderStatusFromUEX(newOrder.id, newOrder.uexTransactionId)
+    }
+    
     return res.status(201).json(newOrder)
   } catch (error) {
     logger.error('Create order error:', error)
@@ -53,12 +96,22 @@ router.post('/', (req, res) => {
 })
 
 // GET /api/orders/user
-router.get('/user', (req, res) => {
+router.get('/user', async (req, res) => {
   try {
     const { page = 1, limit = 20, status } = req.query
     const userId = req.query['userId'] || 'user-1'
     
     let filteredOrders = orders.filter(o => o.userId === userId)
+    
+    // Update order statuses based on UEX transaction statuses
+    for (const order of filteredOrders) {
+      if (order.uexTransactionId) {
+        await updateOrderStatusFromUEX(order.id, order.uexTransactionId)
+      }
+    }
+    
+    // Re-filter after status updates
+    filteredOrders = orders.filter(o => o.userId === userId)
     
     if (status) {
       filteredOrders = filteredOrders.filter(o => o.status === status)

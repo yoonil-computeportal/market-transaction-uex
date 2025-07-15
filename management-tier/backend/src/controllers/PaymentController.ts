@@ -56,7 +56,7 @@ export class PaymentController {
         id: txn.id,
         client_id: txn.client_id,
         seller_id: txn.seller_id,
-        amount: parseFloat(txn.amount),
+        amount: parseFloat(txn.amount), // Use base amount (without fees) for display
         currency: txn.currency,
         target_currency: txn.target_currency,
         payment_method: txn.payment_method,
@@ -122,7 +122,7 @@ export class PaymentController {
         id: txn.id,
         client_id: txn.client_id,
         seller_id: txn.seller_id,
-        amount: parseFloat(txn.amount),
+        amount: parseFloat(txn.amount), // Use base amount (without fees) for display
         currency: txn.currency,
         target_currency: txn.target_currency,
         payment_method: txn.payment_method,

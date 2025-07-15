@@ -3,6 +3,80 @@ import { useQuery } from 'react-query'
 import { orderApi } from '../services/api'
 import { Order } from '../types'
 
+// Component to display UEX transaction status
+const UEXTransactionStatus: React.FC<{ transactionId: string }> = ({ transactionId }) => {
+  const { data: uexStatus, isLoading, error } = useQuery(
+    ['uex-status', transactionId],
+    async () => {
+      const response = await fetch(`http://localhost:3001/api/payments/transaction/${transactionId}/status`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch UEX status')
+      }
+      return response.json()
+    },
+    {
+      refetchInterval: 10000, // Refresh every 10 seconds
+      retry: 3,
+      enabled: !!transactionId
+    }
+  )
+
+  if (isLoading) {
+    return (
+      <div className="text-sm">
+        <span className="text-gray-600">UEX Transaction: </span>
+        <span className="font-mono text-blue-600">
+          {`${transactionId}`.slice(-8)}
+        </span>
+        <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+          Loading...
+        </span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-sm">
+        <span className="text-gray-600">UEX Transaction: </span>
+        <span className="font-mono text-blue-600">
+          {`${transactionId}`.slice(-8)}
+        </span>
+        <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+          Error
+        </span>
+      </div>
+    )
+  }
+
+  const status = (uexStatus?.data?.status as string) || 'unknown'
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800'
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'failed':
+      case 'cancelled':
+        return 'bg-red-100 text-red-600'
+      default:
+        return 'bg-blue-100 text-blue-800'
+    }
+  }
+
+  return (
+    <div className="text-sm">
+      <span className="text-gray-600">UEX Transaction: </span>
+      <span className="font-mono text-blue-600">
+        {`${transactionId}`.slice(-8)}
+      </span>
+      <span className={`ml-2 text-xs px-2 py-1 rounded ${getStatusColor(status)}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    </div>
+  )
+}
+
 export const OrderManagement: React.FC = () => {
   const [filters, setFilters] = useState({
     status: '',
@@ -94,15 +168,7 @@ export const OrderManagement: React.FC = () => {
                   {/* UEX Transaction Status */}
                   <div className="mt-2">
                     {order.uexTransactionId ? (
-                      <div className="text-sm">
-                        <span className="text-gray-600">UEX Transaction: </span>
-                        <span className="font-mono text-blue-600">
-                          {`${order.uexTransactionId}`.slice(-8)}
-                        </span>
-                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          Payment Processed
-                        </span>
-                      </div>
+                      <UEXTransactionStatus transactionId={order.uexTransactionId} />
                     ) : (
                       <div className="text-sm">
                         <span className="text-gray-500 italic">No payment record</span>
@@ -112,7 +178,7 @@ export const OrderManagement: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-gray-900">
-                    ${order.totalAmount.toFixed(2)}
+                    ${(order.totalAmount || 0).toFixed(2)}
                   </div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     order.status === 'completed' ? 'bg-green-100 text-green-800' :

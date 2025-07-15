@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processing Tier Logs - ComputePortal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-icon {
+            font-size: 2rem;
+            -webkit-text-fill-color: initial;
+        }
+
+        .header-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .clear-button {
+            padding: 0.75rem 1rem;
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .clear-button:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .filter-group select {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-card.info .stat-number { color: #3b82f6; }
+        .stat-card.error .stat-number { color: #ef4444; }
+        .stat-card.warning .stat-number { color: #f59e0b; }
+        .stat-card.success .stat-number { color: #10b981; }
+
+        .logs-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logs-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logs-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logs-icon {
+            font-size: 1.25rem;
+        }
+
+        .logs-count {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        .logs-table th {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #374151;
+            font-weight: 600;
+            text-align: left;
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid #e5e7eb;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.75rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .logs-table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: top;
+        }
+
+        .log-row {
+            transition: background-color 0.2s ease;
+        }
+
+        .log-row:hover {
+            background-color: #f9fafb;
+        }
+
+        .log-row.error {
+            background-color: #fef2f2;
+        }
+
+        .log-row.error:hover {
+            background-color: #fee2e2;
+        }
+
+        .log-row.warning {
+            background-color: #fffbeb;
+        }
+
+        .log-row.warning:hover {
+            background-color: #fef3c7;
+        }
+
+        .log-row.info {
+            background-color: #eff6ff;
+        }
+
+        .log-row.info:hover {
+            background-color: #dbeafe;
+        }
+
+        .log-timestamp {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.75rem;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        .log-level {
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .log-level.info {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .log-level.error {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        .log-level.warning {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+
+        .log-level.debug {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .log-service {
+            font-weight: 600;
+            color: #374151;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+
+        .log-message {
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        .log-details {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: #f9fafb;
+            padding: 0.5rem;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-details.collapsed {
+            display: none;
+        }
+
+        .toggle-details {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 0.75rem;
+            text-decoration: underline;
+            margin-top: 0.25rem;
+        }
+
+        .toggle-details:hover {
+            color: #5a67d8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-logs {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .no-logs-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                min-width: auto;
+            }
+            
+            .logs-table {
+                font-size: 0.75rem;
+            }
+            
+            .logs-table th,
+            .logs-table td {
+                padding: 0.75rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span class="header-icon">📊</span>
+                Processing Tier Logs
+            </h1>
+            <p class="header-subtitle">Real-time monitoring and analysis of processing-tier system logs</p>
+        </div>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search logs by message, service, or details...">
+                <button class="search-button" id="searchButton">Search</button>
+                <button class="clear-button" id="clearButton">Clear</button>
+            </div>
+            <div class="filter-group">
+                <label for="levelFilter">Level:</label>
+                <select id="levelFilter">
+                    <option value="">All Levels</option>
+                    <option value="info">Info</option>
+                    <option value="error">Error</option>
+                    <option value="warning">Warning</option>
+                    <option value="debug">Debug</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="serviceFilter">Service:</label>
+                <select id="serviceFilter">
+                    <option value="">All Services</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card info">
+                <div class="stat-number" id="totalLogs">0</div>
+                <div class="stat-label">Total Logs</div>
+            </div>
+            <div class="stat-card error">
+                <div class="stat-number" id="errorLogs">0</div>
+                <div class="stat-label">Errors</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-number" id="warningLogs">0</div>
+                <div class="stat-label">Warnings</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-number" id="infoLogs">0</div>
+                <div class="stat-label">Info</div>
+            </div>
+        </div>
+
+        <div class="logs-container">
+            <div class="logs-header">
+                <div class="logs-title">
+                    <span class="logs-icon">📋</span>
+                    Log Entries
+                </div>
+                <div class="logs-count" id="displayedLogs">0 logs</div>
+            </div>
+            <div id="logsContent">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading logs...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class LogViewer {
+            constructor() {
+                this.logs = [];
+                this.filteredLogs = [];
+                this.searchTerm = '';
+                this.levelFilter = '';
+                this.serviceFilter = '';
+                
+                this.initializeElements();
+                this.loadLogs();
+                this.setupEventListeners();
+            }
+
+            initializeElements() {
+                this.searchInput = document.getElementById('searchInput');
+                this.searchButton = document.getElementById('searchButton');
+                this.clearButton = document.getElementById('clearButton');
+                this.levelFilterEl = document.getElementById('levelFilter');
+                this.serviceFilterEl = document.getElementById('serviceFilter');
+                this.logsContent = document.getElementById('logsContent');
+                this.totalLogsEl = document.getElementById('totalLogs');
+                this.errorLogsEl = document.getElementById('errorLogs');
+                this.warningLogsEl = document.getElementById('warningLogs');
+                this.infoLogsEl = document.getElementById('infoLogs');
+                this.displayedLogsEl = document.getElementById('displayedLogs');
+            }
+
+            setupEventListeners() {
+                this.searchInput.addEventListener('input', (e) => {
+                    this.searchTerm = e.target.value.toLowerCase();
+                    this.filterLogs();
+                });
+
+                this.searchButton.addEventListener('click', () => {
+                    this.searchTerm = this.searchInput.value.toLowerCase();
+                    this.filterLogs();
+                });
+
+                this.searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.searchTerm = this.searchInput.value.toLowerCase();
+                        this.filterLogs();
+                    }
+                });
+
+                this.clearButton.addEventListener('click', () => {
+                    this.searchInput.value = '';
+                    this.searchTerm = '';
+                    this.levelFilterEl.value = '';
+                    this.serviceFilterEl.value = '';
+                    this.levelFilter = '';
+                    this.serviceFilter = '';
+                    this.filterLogs();
+                });
+
+                this.levelFilterEl.addEventListener('change', (e) => {
+                    this.levelFilter = e.target.value;
+                    this.filterLogs();
+                });
+
+                this.serviceFilterEl.addEventListener('change', (e) => {
+                    this.serviceFilter = e.target.value;
+                    this.filterLogs();
+                });
+            }
+
+            async loadLogs() {
+                try {
+                    const response = await fetch('../processing-tier/logs/combined.log');
+                    const text = await response.text();
+                    this.parseLogs(text);
+                    this.updateStats();
+                    this.filterLogs();
+                } catch (error) {
+                    console.error('Failed to load logs:', error);
+                    this.logsContent.innerHTML = `
+                        <div class="no-logs">
+                            <div class="no-logs-icon">⚠️</div>
+                            <p>Failed to load logs. This is likely due to browser security restrictions.</p>
+                            <p style="margin-top: 1rem; font-size: 0.9rem; color: #6b7280;">
+                                <strong>Solution:</strong> Run a local server from the project root:<br>
+                                <code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;">
+                                    python3 -m http.server 8080
+                                </code><br>
+                                Then visit: <code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;">
+                                    http://localhost:8080/presentation/processing-tier-log.html
+                                </code>
+                            </p>
+                        </div>
+                    `;
+                }
+            }
+
+            parseLogs(text) {
+                console.log('Parsing logs, text length:', text.length);
+                const lines = text.trim().split('\n');
+                console.log('Total lines:', lines.length);
+                
+                this.logs = lines
+                    .filter(line => line.trim())
+                    .map(line => {
+                        try {
+                            return JSON.parse(line);
+                        } catch (e) {
+                            console.warn('Failed to parse log line:', line.substring(0, 100));
+                            return null;
+                        }
+                    })
+                    .filter(log => log !== null)
+                    .map(log => ({
+                        ...log,
+                        timestamp: new Date(log.timestamp),
+                        level: log.level || 'info',
+                        service: log.service || 'unknown',
+                        message: log.message || '',
+                        error: log.error || null,
+                        stack: log.stack || null
+                    }))
+                    .sort((a, b) => b.timestamp - a.timestamp);
+
+                                console.log('Parsed logs:', this.logs.length);
+                console.log('Sample log:', this.logs[0]);
+
+                // Populate service filter
+                const services = [...new Set(this.logs.map(log => log.service))];
+                services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service;
+                    option.textContent = service;
+                    this.serviceFilterEl.appendChild(option);
+                });
+            }
+
+            filterLogs() {
+                console.log('Filtering logs...', {
+                    totalLogs: this.logs.length,
+                    searchTerm: this.searchTerm,
+                    levelFilter: this.levelFilter,
+                    serviceFilter: this.serviceFilter
+                });
+
+                // If no filters are applied, show all logs
+                if (!this.searchTerm && !this.levelFilter && !this.serviceFilter) {
+                    this.filteredLogs = this.logs;
+                    console.log('No filters applied, showing all logs:', this.filteredLogs.length);
+                } else {
+                    this.filteredLogs = this.logs.filter(log => {
+                        // Search in all possible fields
+                        const searchableText = [
+                            log.message || '',
+                            log.service || '',
+                            log.level || '',
+                            log.error ? JSON.stringify(log.error) : '',
+                            log.stack || '',
+                            log.text || '',
+                            log.params ? JSON.stringify(log.params) : '',
+                            // Search in the entire log object as JSON
+                            JSON.stringify(log)
+                        ].join(' ').toLowerCase();
+
+                        const matchesSearch = !this.searchTerm || searchableText.includes(this.searchTerm);
+                        const matchesLevel = !this.levelFilter || log.level === this.levelFilter;
+                        const matchesService = !this.serviceFilter || log.service === this.serviceFilter;
+
+                        const matches = matchesSearch && matchesLevel && matchesService;
+                        
+                        if (!matches && this.searchTerm) {
+                            console.log('Log filtered out by search:', {
+                                message: log.message.substring(0, 50),
+                                level: log.level,
+                                service: log.service,
+                                searchTerm: this.searchTerm,
+                                searchableText: searchableText.substring(0, 100)
+                            });
+                        }
+
+                        return matches;
+                    });
+                }
+
+                console.log('Filtered logs count:', this.filteredLogs.length);
+                this.renderLogs();
+                this.updateDisplayedCount();
+            }
+
+            renderLogs() {
+                console.log('Rendering logs, filtered count:', this.filteredLogs.length);
+                
+                if (this.filteredLogs.length === 0) {
+                    this.logsContent.innerHTML = `
+                        <div class="no-logs">
+                            <div class="no-logs-icon">🔍</div>
+                            <p>No logs match the current filters.</p>
+                            <p style="margin-top: 1rem; font-size: 0.9rem; color: #6b7280;">
+                                Total logs loaded: ${this.logs.length}<br>
+                                Try clearing the filters to see all logs.
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const table = document.createElement('table');
+                table.className = 'logs-table';
+
+                const thead = document.createElement('thead');
+                thead.innerHTML = `
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Level</th>
+                        <th>Service</th>
+                        <th>Message</th>
+                    </tr>
+                `;
+                table.appendChild(thead);
+
+                const tbody = document.createElement('tbody');
+                this.filteredLogs.forEach(log => {
+                    const row = this.createLogRow(log);
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+
+                this.logsContent.innerHTML = '';
+                this.logsContent.appendChild(table);
+            }
+
+            createLogRow(log) {
+                const row = document.createElement('tr');
+                row.className = `log-row ${log.level}`;
+
+                const timestamp = log.timestamp.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                const hasDetails = log.error || log.stack || log.params || log.text;
+
+                row.innerHTML = `
+                    <td class="log-timestamp">${timestamp}</td>
+                    <td><span class="log-level ${log.level}">${log.level}</span></td>
+                    <td class="log-service">${log.service}</td>
+                    <td>
+                        <div class="log-message">${this.escapeHtml(log.message)}</div>
+                        ${hasDetails ? `
+                            <button class="toggle-details" onclick="logViewer.toggleDetails(this)">
+                                Show Details
+                            </button>
+                            <div class="log-details collapsed">
+                                ${this.formatDetails(log)}
+                            </div>
+                        ` : ''}
+                    </td>
+                `;
+
+                return row;
+            }
+
+            formatDetails(log) {
+                const details = [];
+                
+                if (log.error) {
+                    details.push(`Error: ${JSON.stringify(log.error, null, 2)}`);
+                }
+                
+                if (log.stack) {
+                    details.push(`Stack: ${log.stack}`);
+                }
+                
+                if (log.params) {
+                    details.push(`Params: ${JSON.stringify(log.params, null, 2)}`);
+                }
+                
+                if (log.text) {
+                    details.push(`SQL: ${log.text}`);
+                }
+
+                return details.join('\n\n');
+            }
+
+            toggleDetails(button) {
+                const details = button.nextElementSibling;
+                const isCollapsed = details.classList.contains('collapsed');
+                
+                if (isCollapsed) {
+                    details.classList.remove('collapsed');
+                    button.textContent = 'Hide Details';
+                } else {
+                    details.classList.add('collapsed');
+                    button.textContent = 'Show Details';
+                }
+            }
+
+            updateStats() {
+                const stats = {
+                    total: this.logs.length,
+                    error: this.logs.filter(log => log.level === 'error').length,
+                    warning: this.logs.filter(log => log.level === 'warning').length,
+                    info: this.logs.filter(log => log.level === 'info').length
+                };
+
+                this.totalLogsEl.textContent = stats.total;
+                this.errorLogsEl.textContent = stats.error;
+                this.warningLogsEl.textContent = stats.warning;
+                this.infoLogsEl.textContent = stats.info;
+            }
+
+            updateDisplayedCount() {
+                this.displayedLogsEl.textContent = `${this.filteredLogs.length} logs`;
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize the log viewer
+        const logViewer = new LogViewer();
+    </script>
+</body>
+</html> 

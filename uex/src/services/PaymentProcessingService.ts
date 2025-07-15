@@ -41,10 +41,10 @@ export class PaymentProcessingService {
         request.target_currency
       );
 
-      const conversionFee = this.calculateConversionFee(request.amount, exchangeRate);
-      const managementFee = this.calculateManagementFee(request.amount);
-      const totalFee = conversionFee + managementFee;
-      const totalAmount = request.amount + totalFee;
+      const conversionFee = 0; // Removed conversion fee
+      const managementFee = 0; // Removed management fee
+      const totalFee = 0; // No fees
+      const totalAmount = request.amount; // Total amount equals base amount
 
       // Step 3: Create the payment transaction
       const transaction: Omit<PaymentTransaction, 'id' | 'created_at' | 'updated_at'> = {
@@ -64,7 +64,7 @@ export class PaymentProcessingService {
 
       await this.dbService.createPaymentTransactionWithId(transaction, transactionId);
 
-      // Step 4: Create currency conversion record if needed
+      // Step 4: Create currency conversion record if needed (no fees)
       if (request.currency !== request.target_currency) {
         const conversion: Omit<CurrencyConversion, 'id' | 'created_at'> = {
           transaction_id: transactionId,
@@ -73,31 +73,12 @@ export class PaymentProcessingService {
           exchange_rate: exchangeRate,
           amount: request.amount,
           converted_amount: request.amount * exchangeRate,
-          conversion_fee: conversionFee
+          conversion_fee: 0 // No conversion fee
         };
         await this.dbService.createCurrencyConversion(conversion);
       }
 
-      // Step 5: Create management tier fee records
-      const managementFeeRecord: Omit<ManagementTierFee, 'id' | 'created_at'> = {
-        transaction_id: transactionId,
-        fee_type: 'processing',
-        amount: managementFee,
-        currency: request.currency,
-        description: 'Management tier processing fee'
-      };
-      await this.dbService.createManagementTierFee(managementFeeRecord);
-
-      if (conversionFee > 0) {
-        const conversionFeeRecord: Omit<ManagementTierFee, 'id' | 'created_at'> = {
-          transaction_id: transactionId,
-          fee_type: 'currency_conversion',
-          amount: conversionFee,
-          currency: request.currency,
-          description: 'Currency conversion fee'
-        };
-        await this.dbService.createManagementTierFee(conversionFeeRecord);
-      }
+      // Step 5: No fee records created (fees removed)
 
       // Step 6: Determine settlement time based on payment method
       const estimatedSettlementTime = this.calculateSettlementTime(
@@ -114,11 +95,11 @@ export class PaymentProcessingService {
         target_currency: request.target_currency,
         conversion_rate: exchangeRate,
         fees: {
-          conversion_fee: conversionFee,
-          management_fee: managementFee,
-          total_fee: totalFee
+          conversion_fee: 0,
+          management_fee: 0,
+          total_fee: 0
         },
-        total_amount: totalAmount,
+        total_amount: request.amount, // Total amount equals base amount
         estimated_settlement_time: estimatedSettlementTime,
         created_at: new Date()
       };
