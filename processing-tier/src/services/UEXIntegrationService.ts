@@ -248,6 +248,22 @@ export class UEXIntegrationService {
       throw new Error('Failed to get transaction analytics');
     }
   }
+
+  /**
+   * Get all transactions from UEX backend
+   */
+  static async getAllTransactions(): Promise<UEXTransactionStatus[]> {
+    try {
+      const response = await uexApi.get('/payments/transactions');
+      return response.data.data;
+    } catch (error: any) {
+      console.error('UEX Get all transactions error:', error);
+      throw new Error(
+        error.response?.data?.message || 
+        'Failed to get all transactions from UEX backend'
+      );
+    }
+  }
 }
 
 // Export the axios instance for direct use if needed

@@ -26,37 +26,63 @@ export class PaymentController {
   private uexBaseUrl = process.env['UEX_BASE_URL'] || 'http://localhost:3001/api';
   private db = new DatabaseService();
 
+  private mapUexStatusToPaymentStatus(uexStatus: string): 'initiated' | 'processing' | 'settled' | 'failed' {
+    switch (uexStatus) {
+      case 'pending':
+        return 'initiated';
+      case 'processing':
+        return 'processing';
+      case 'completed':
+        return 'settled';
+      case 'failed':
+      case 'cancelled':
+        return 'failed';
+      default:
+        return 'initiated';
+    }
+  }
+
   async getAllPayments(req: Request, res: Response) {
     try {
-      // 실제 DB에서 트랜잭션 조회
-      const result = await this.db.query('SELECT * FROM transactions ORDER BY updated_at DESC LIMIT 100');
-      const rows = result.rows || [];
-      // DB row를 PaymentTransaction 형태로 매핑
-      const payments: PaymentTransaction[] = rows.map((row: any) => ({
-        id: row.transaction_id,
-        client_id: row.user_id,
-        seller_id: row.seller_id || '',
-        amount: row.amount,
-        currency: row.currency || 'USD',
-        target_currency: row.target_currency || row.currency || 'USD',
-        payment_method: row.payment_method || 'fiat',
-        settlement_method: row.settlement_method || 'bank',
-        status: row.status,
-        created_at: row.created_at ? new Date(row.created_at).toISOString() : '',
-        updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : '',
-        fees: row.fees ? (typeof row.fees === 'object' ? row.fees : JSON.parse(row.fees)) : undefined,
+      // Fetch real transaction data from UEX backend
+      const uexResponse = await axios.get(`${this.uexBaseUrl}/payments/transactions`);
+      
+      if (!uexResponse.data || !uexResponse.data.success || !Array.isArray(uexResponse.data.data)) {
+        throw new Error('Invalid response from UEX backend');
+      }
+
+      // Map UEX transaction data to PaymentTransaction format
+      const payments: PaymentTransaction[] = uexResponse.data.data.map((txn: any) => ({
+        id: txn.id,
+        client_id: txn.client_id,
+        seller_id: txn.seller_id,
+        amount: parseFloat(txn.amount),
+        currency: txn.currency,
+        target_currency: txn.target_currency,
+        payment_method: txn.payment_method,
+        settlement_method: txn.settlement_method,
+        status: this.mapUexStatusToPaymentStatus(txn.status),
+        created_at: txn.created_at,
+        updated_at: txn.updated_at,
+        fees: {
+          processing_fee: parseFloat(txn.management_fee || 0),
+          currency_conversion_fee: parseFloat(txn.conversion_fee || 0),
+          settlement_fee: 0, // UEX doesn't have separate settlement fee
+          total_fees: parseFloat(txn.management_fee || 0) + parseFloat(txn.conversion_fee || 0)
+        }
       }));
-      res.json({
+
+      return res.json({
         success: true,
         data: payments,
         count: payments.length
       });
     } catch (error) {
-      console.error('Error fetching payments:', error);
-      res.status(500).json({
+      console.error('Error fetching payments from UEX:', error);
+      return res.status(500).json({
         success: false,
         error: {
-          message: 'Failed to fetch payments',
+          message: 'Failed to fetch payments from UEX backend',
           code: 'FETCH_ERROR'
         }
       });
@@ -67,37 +93,61 @@ export class PaymentController {
     try {
       const { id } = req.params;
       
-      // Simulate fetching specific payment
-      const mockPayment: PaymentTransaction = {
-        id: id || 'unknown',
-        client_id: 'user-1',
-        seller_id: 'provider-1',
-        amount: 100,
-        currency: 'USD',
-        target_currency: 'USD',
-        payment_method: 'fiat',
-        settlement_method: 'bank',
-        status: 'initiated',
-        created_at: new Date(Date.now() - 60000).toISOString(),
-        updated_at: new Date(Date.now() - 60000).toISOString(),
+      // Fetch all transactions from UEX backend and find the specific one
+      const uexResponse = await axios.get(`${this.uexBaseUrl}/payments/transactions`);
+      
+      if (!uexResponse.data || !uexResponse.data.success || !Array.isArray(uexResponse.data.data)) {
+        return res.status(500).json({
+          success: false,
+          error: {
+            message: 'Invalid response from UEX backend',
+            code: 'FETCH_ERROR'
+          }
+        });
+      }
+
+      const txn = uexResponse.data.data.find((t: any) => t.id === id);
+      
+      if (!txn) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: 'Payment not found',
+            code: 'NOT_FOUND'
+          }
+        });
+      }
+
+      const payment: PaymentTransaction = {
+        id: txn.id,
+        client_id: txn.client_id,
+        seller_id: txn.seller_id,
+        amount: parseFloat(txn.amount),
+        currency: txn.currency,
+        target_currency: txn.target_currency,
+        payment_method: txn.payment_method,
+        settlement_method: txn.settlement_method,
+        status: this.mapUexStatusToPaymentStatus(txn.status),
+        created_at: txn.created_at,
+        updated_at: txn.updated_at,
         fees: {
-          processing_fee: 2.50,
-          currency_conversion_fee: 0,
-          settlement_fee: 1.00,
-          total_fees: 3.50
+          processing_fee: parseFloat(txn.management_fee || 0),
+          currency_conversion_fee: parseFloat(txn.conversion_fee || 0),
+          settlement_fee: 0,
+          total_fees: parseFloat(txn.management_fee || 0) + parseFloat(txn.conversion_fee || 0)
         }
       };
 
-      res.json({
+      return res.json({
         success: true,
-        data: mockPayment
+        data: payment
       });
     } catch (error) {
-      console.error('Error fetching payment:', error);
-      res.status(500).json({
+      console.error('Error fetching payment from UEX:', error);
+      return res.status(500).json({
         success: false,
         error: {
-          message: 'Failed to fetch payment',
+          message: 'Failed to fetch payment from UEX backend',
           code: 'FETCH_ERROR'
         }
       });
@@ -108,24 +158,36 @@ export class PaymentController {
     try {
       const { id } = req.params;
       
-      // Simulate payment status progression
-      const statuses: Array<'initiated' | 'processing' | 'settled' | 'failed'> = ['initiated', 'processing', 'settled', 'failed'];
-      const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+      // Fetch payment status from UEX backend
+      const uexResponse = await axios.get(`${this.uexBaseUrl}/payments/transaction/${id}/status`);
+      
+      if (!uexResponse.data || !uexResponse.data.success || !uexResponse.data.data) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: 'Payment not found',
+            code: 'NOT_FOUND'
+          }
+        });
+      }
 
-      res.json({
+      const txn = uexResponse.data.data;
+      const mappedStatus = this.mapUexStatusToPaymentStatus(txn.status);
+
+      return res.json({
         success: true,
         data: {
           id,
-          status: randomStatus,
-          updated_at: new Date().toISOString()
+          status: mappedStatus,
+          updated_at: txn.updated_at
         }
       });
     } catch (error) {
-      console.error('Error fetching payment status:', error);
-      res.status(500).json({
+      console.error('Error fetching payment status from UEX:', error);
+      return res.status(500).json({
         success: false,
         error: {
-          message: 'Failed to fetch payment status',
+          message: 'Failed to fetch payment status from UEX backend',
           code: 'FETCH_ERROR'
         }
       });

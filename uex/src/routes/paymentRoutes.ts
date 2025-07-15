@@ -20,6 +20,7 @@ router.get('/transaction/:transactionId/status', (req, res) => paymentController
 router.put('/transaction/:transactionId/status', (req, res) => paymentController.updateTransactionStatus(req, res));
 router.get('/transaction/:transactionId/fees', (req, res) => paymentController.getTransactionFees(req, res));
 router.get('/transaction/:transactionId/conversions', (req, res) => paymentController.getTransactionConversions(req, res));
+router.get('/transactions', (req, res) => paymentController.getAllTransactions(req, res));
 
 // Health check route
 router.get('/health', (_req, res) => {

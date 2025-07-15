@@ -157,7 +157,7 @@ NODE_ENV=development
 DATABASE_URL=./dev.sqlite3
 
 # CORS Configuration
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3002
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3002,http://localhost:3003
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000

@@ -7,7 +7,8 @@ import {
   Payment,
   SearchParams,
   ApiResponse,
-  PaginatedResponse 
+  PaginatedResponse,
+  RealTransaction
 } from '../types'
 
 const API_BASE_URL = '/api'
@@ -99,7 +100,7 @@ export const transactionApi = {
     return response.data
   },
 
-  getUserTransactions: async (params?: { page?: number; limit?: number; status?: string; userId?: string }): Promise<PaginatedResponse<Transaction>> => {
+  getUserTransactions: async (params?: { page?: number; limit?: number; status?: string; userId?: string }): Promise<PaginatedResponse<RealTransaction>> => {
     const response = await api.get('/transactions/user', { params })
     return response.data
   },

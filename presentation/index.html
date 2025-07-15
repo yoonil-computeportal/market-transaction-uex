@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Processing - Workflow Demonstration</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, #232526 0%, #414345 100%);
+      color: #f4f4f4;
+      font-family: 'Montserrat', Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* Sidebar Styles */
+    .sidebar {
+      width: 300px;
+      background: rgba(30, 32, 34, 0.98);
+      border-right: 1px solid #404040;
+      overflow-y: auto;
+      box-shadow: 2px 0 8px #0003;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px 16px 20px;
+      border-bottom: 1px solid #404040;
+    }
+
+    .logo {
+      font-size: 1.1em;
+      font-weight: 700;
+      color: #27ae60;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .logo-image {
+      height: 100px;
+      margin: 0 auto 16px auto;
+      display: block;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: none;
+      border: 1.5px solid #e0e0e0;
+    }
+
+    .sidebar-title {
+      font-size: 1.1em;
+      font-weight: 700;
+      color: #27ae60;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-subtitle {
+      font-size: 0.9em;
+      color: #bfc9d1;
+      text-align: center;
+    }
+
+    .slide-list {
+      padding: 16px 0;
+    }
+
+    .slide-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slide-item:hover {
+      background: rgba(39, 174, 96, 0.1);
+      border-left-color: #27ae60;
+    }
+
+    .slide-item.active {
+      background: rgba(39, 174, 96, 0.15);
+      border-left-color: #27ae60;
+      color: #27ae60;
+    }
+
+    .slide-number {
+      font-weight: 700;
+      font-size: 0.9em;
+      color: #8fd6b7;
+      min-width: 24px;
+    }
+
+    .slide-item.active .slide-number {
+      color: #27ae60;
+    }
+
+    .slide-title {
+      font-size: 0.95em;
+      line-height: 1.3;
+    }
+
+    /* Main Content Styles */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .content-header {
+      padding: 16px 20px;
+      background: rgba(30, 32, 34, 0.98);
+      border-bottom: 1px solid #404040;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .zoom-btn {
+      width: 36px;
+      height: 36px;
+      background: rgba(39, 174, 96, 0.2);
+      border: 1px solid #27ae60;
+      border-radius: 8px;
+      color: #27ae60;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .zoom-btn:hover {
+      background: rgba(39, 174, 96, 0.3);
+      transform: scale(1.05);
+    }
+
+    .zoom-btn:active {
+      transform: scale(0.95);
+    }
+
+    .zoom-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .zoom-level {
+      font-size: 0.9em;
+      color: #8fd6b7;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    .slide-container {
+      flex: 1;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      padding: 0;
+      overflow: auto;
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    .slide-frame {
+      border: none;
+      border-radius: 0;
+      background: rgba(30, 32, 34, 0.98);
+      box-shadow: none;
+      animation: fadeIn 0.5s ease;
+      transform-origin: center center;
+      transition: transform 0.3s ease;
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: 200px;
+        border-right: none;
+        border-bottom: 1px solid #404040;
+      }
+      
+      .main-content {
+        height: calc(100vh - 200px);
+      }
+
+      .content-header {
+        padding: 12px 16px;
+      }
+
+      .zoom-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+      }
+    }
+
+    /* Scrollbar Styling */
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: #27ae60;
+      border-radius: 3px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb:hover {
+      background: #229954;
+    }
+
+    .slide-container::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .slide-container::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .slide-container::-webkit-scrollbar-thumb {
+      background: #27ae60;
+      border-radius: 4px;
+    }
+
+    .slide-container::-webkit-scrollbar-thumb:hover {
+      background: #229954;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <img src="images/logo.png" alt="ComputePortal Logo" class="logo-image">
+        <div class="sidebar-title">Payment Processing</div>
+        <div class="sidebar-subtitle">Payment & Transaction Management</div>
+      </div>
+      
+      <div class="slide-list">
+        <div class="slide-item active" onclick="loadSlide('http://localhost:3000')">
+          <span class="slide-number">01</span>
+          <span class="slide-title">User Device (e.g. Mobile, Desktop)</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide2.html')">
+          <span class="slide-number">02</span>
+          <span class="slide-title">Executive Summary</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide3.html')">
+          <span class="slide-number">03</span>
+          <span class="slide-title">Three-Tier Architecture Overview</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide4.html')">
+          <span class="slide-number">04</span>
+          <span class="slide-title">Component Data Flow Architecture</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide5.html')">
+          <span class="slide-number">05</span>
+          <span class="slide-title">Client Tier - Wallet Interface Overview</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide6.html')">
+          <span class="slide-number">06</span>
+          <span class="slide-title">Ethereum Wallet Features & Requirements</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide7.html')">
+          <span class="slide-number">07</span>
+          <span class="slide-title">Cardano Wallet Features & Requirements</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide8.html')">
+          <span class="slide-number">08</span>
+          <span class="slide-title">Processing Tier - Resource Monitor Overview</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide9.html')">
+          <span class="slide-number">09</span>
+          <span class="slide-title">Resource Consumption Tracking</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide10.html')">
+          <span class="slide-number">10</span>
+          <span class="slide-title">Processing Tier - Payment Manager</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide11.html')">
+          <span class="slide-number">11</span>
+          <span class="slide-title">UEX Payment Gateway Integration</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide12.html')">
+          <span class="slide-number">12</span>
+          <span class="slide-title">Management Tier - Resource Accounting</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide13.html')">
+          <span class="slide-number">13</span>
+          <span class="slide-title">Transaction Fee Implementation</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide14.html')">
+          <span class="slide-number">14</span>
+          <span class="slide-title">Billing and Invoicing System</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide15.html')">
+          <span class="slide-number">15</span>
+          <span class="slide-title">Security Framework</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide16.html')">
+          <span class="slide-number">16</span>
+          <span class="slide-title">API Integration Architecture</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide17.html')">
+          <span class="slide-number">17</span>
+          <span class="slide-title">Performance Requirements</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide18.html')">
+          <span class="slide-number">18</span>
+          <span class="slide-title">Infrastructure Requirements</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide19.html')">
+          <span class="slide-number">19</span>
+          <span class="slide-title">Development Phases & Timeline</span>
+        </div>
+        <div class="slide-item" onclick="loadSlide('slide20.html')">
+          <span class="slide-number">20</span>
+          <span class="slide-title">Success Metrics & Next Steps</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="content-header">
+        <div class="zoom-controls">
+          <button class="zoom-btn" onclick="zoomOut()" id="zoomOutBtn">−</button>
+          <span class="zoom-level" id="zoomLevel">100%</span>
+          <button class="zoom-btn" onclick="zoomIn()" id="zoomInBtn">+</button>
+        </div>
+      </div>
+      
+      <div class="slide-container">
+        <iframe id="slideFrame" class="slide-frame" src="http://localhost:3000"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentZoom = 1;
+    const minZoom = 0.5;
+    const maxZoom = 3;
+    const zoomStep = 0.25;
+
+    function loadSlide(slideFile) {
+      const frame = document.getElementById('slideFrame');
+      const slideItems = document.querySelectorAll('.slide-item');
+      
+      // Remove active class from all items
+      slideItems.forEach(item => item.classList.remove('active'));
+      
+      // Add active class to clicked item
+      event.currentTarget.classList.add('active');
+      
+      // Load the slide
+      frame.src = slideFile;
+      
+      // Add fade animation
+      frame.style.opacity = '0';
+      setTimeout(() => {
+        frame.style.opacity = '1';
+      }, 100);
+
+      // Reset zoom when changing slides
+      resetZoom();
+      
+      // Add error handling for iframe loading
+      frame.onerror = function() {
+        console.error('Failed to load:', slideFile);
+      };
+      
+      frame.onload = function() {
+        console.log('Successfully loaded:', slideFile);
+      };
+    }
+
+    function zoomIn() {
+      if (currentZoom < maxZoom) {
+        currentZoom += zoomStep;
+        updateZoom();
+      }
+    }
+
+    function zoomOut() {
+      if (currentZoom > minZoom) {
+        currentZoom -= zoomStep;
+        updateZoom();
+      }
+    }
+
+    function resetZoom() {
+      currentZoom = 1;
+      updateZoom();
+    }
+
+    function updateZoom() {
+      const frame = document.getElementById('slideFrame');
+      const zoomLevel = document.getElementById('zoomLevel');
+      const zoomOutBtn = document.getElementById('zoomOutBtn');
+      const zoomInBtn = document.getElementById('zoomInBtn');
+
+      // Send zoom message to iframe
+      frame.contentWindow.postMessage({ type: 'zoom', value: currentZoom }, '*');
+      
+      // Update zoom level display
+      zoomLevel.textContent = Math.round(currentZoom * 100) + '%';
+      
+      // Update button states
+      zoomOutBtn.disabled = currentZoom <= minZoom;
+      zoomInBtn.disabled = currentZoom >= maxZoom;
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(event) {
+      const slideItems = document.querySelectorAll('.slide-item');
+      const activeItem = document.querySelector('.slide-item.active');
+      const currentIndex = Array.from(slideItems).indexOf(activeItem);
+      
+      if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        const nextIndex = (currentIndex + 1) % slideItems.length;
+        slideItems[nextIndex].click();
+      } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+        event.preventDefault();
+        const prevIndex = currentIndex === 0 ? slideItems.length - 1 : currentIndex - 1;
+        slideItems[prevIndex].click();
+      } else if (event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        zoomIn();
+      } else if (event.key === '-') {
+        event.preventDefault();
+        zoomOut();
+      } else if (event.key === '0') {
+        event.preventDefault();
+        resetZoom();
+      }
+    });
+
+    // Mouse wheel zoom
+    document.addEventListener('wheel', function(event) {
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        if (event.deltaY < 0) {
+          zoomIn();
+        } else {
+          zoomOut();
+        }
+      }
+    });
+
+    // Initialize
+    updateZoom();
+  </script>
+</body>
+</html> 

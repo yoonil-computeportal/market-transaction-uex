@@ -33,6 +33,7 @@ export interface Order {
   createdAt: string
   updatedAt: string
   scheduledFor?: string
+  uexTransactionId?: string  // Link to real UEX transaction
 }
 
 export interface OrderResource {
@@ -115,4 +116,27 @@ export interface PaginatedResponse<T> {
     total: number
     totalPages: number
   }
+}
+
+// Real Transaction Type for UEX backend
+export interface RealTransaction {
+  id: string;
+  client_id: string;
+  seller_id: string;
+  amount: number;
+  currency: string;
+  target_currency: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  payment_method: string;
+  settlement_method: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+  failure_reason?: string;
+  total_amount: number;
+  conversion_rate?: number;
+  conversion_fee?: number;
+  management_fee?: number;
+  transaction_hash?: string;
+  bank_reference?: string;
 } 

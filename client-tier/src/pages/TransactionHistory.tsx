@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery } from 'react-query'
 import { transactionApi } from '../services/api'
-import { Transaction } from '../types'
+import { RealTransaction } from '../types'
 import { 
   DocumentTextIcon, 
   CheckCircleIcon, 
@@ -103,48 +103,47 @@ export const TransactionHistory: React.FC = () => {
       {/* Transactions List */}
       {transactionsData && !isLoading && (
         <div className="space-y-4">
-          {transactionsData.data.map((transaction: Transaction) => (
+          {transactionsData.data.map((transaction: RealTransaction) => (
             <div key={transaction.id} className="card">
               <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-3">
-                  {getStatusIcon(transaction.status)}
+                  {getStatusIcon(transaction.status || 'unknown')}
                   <div>
                     <h3 className="font-medium text-gray-900">
                       Transaction #{transaction.id.slice(-8)}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Order: #{transaction.orderId.slice(-8)}
+                      Seller: {transaction.seller_id}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {new Date(transaction.createdAt).toLocaleDateString()}
+                      {new Date(transaction.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 
                 <div className="text-right">
                   <div className="text-lg font-bold text-gray-900">
-                    ${transaction.amount.toFixed(2)}
+                    ${(transaction.amount || 0).toFixed(2)}
                   </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(transaction.status)}`}>
-                    {transaction.status}
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(transaction.status || 'unknown')}`}>
+                    {transaction.status || 'Unknown'}
                   </span>
                 </div>
               </div>
-              
               {/* Fee Breakdown */}
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-600">Buyer Fee:</span>
-                    <span className="ml-2 font-medium">${transaction.fees.buyer.toFixed(2)}</span>
+                    <span className="text-gray-600">Conversion Fee:</span>
+                    <span className="ml-2 font-medium">{`$${Number.isFinite(transaction.conversion_fee) ? (transaction.conversion_fee as number).toFixed(2) : '0.00'}`}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Seller Fee:</span>
-                    <span className="ml-2 font-medium">${transaction.fees.seller.toFixed(2)}</span>
+                    <span className="text-gray-600">Management Fee:</span>
+                    <span className="ml-2 font-medium">{`$${Number.isFinite(transaction.management_fee) ? (transaction.management_fee as number).toFixed(2) : '0.00'}`}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Platform Fee:</span>
-                    <span className="ml-2 font-medium">${transaction.fees.platform.toFixed(2)}</span>
+                    <span className="text-gray-600">Total Amount:</span>
+                    <span className="ml-2 font-medium">${(transaction.total_amount || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

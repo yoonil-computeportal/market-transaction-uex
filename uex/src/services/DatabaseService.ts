@@ -19,6 +19,14 @@ export class DatabaseService {
     return result;
   }
 
+  async createPaymentTransactionWithId(transaction: Omit<PaymentTransaction, 'id' | 'created_at' | 'updated_at'>, transactionId: string): Promise<PaymentTransaction> {
+    const transactionWithId = { ...transaction, id: transactionId };
+    const [result] = await db(TABLES.PAYMENT_TRANSACTIONS)
+      .insert(transactionWithId)
+      .returning('*');
+    return result;
+  }
+
   async getPaymentTransaction(id: string): Promise<PaymentTransaction | null> {
     const result = await db(TABLES.PAYMENT_TRANSACTIONS)
       .where({ id })
@@ -38,6 +46,10 @@ export class DatabaseService {
     return await db(TABLES.PAYMENT_TRANSACTIONS)
       .where({ status })
       .orderBy('created_at', 'desc');
+  }
+
+  async getAllPaymentTransactions(): Promise<PaymentTransaction[]> {
+    return await db(TABLES.PAYMENT_TRANSACTIONS).orderBy('created_at', 'desc');
   }
 
   // Seller Payout Accounts

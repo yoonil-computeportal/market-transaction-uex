@@ -186,6 +186,16 @@ export class PaymentController {
     }
   }
 
+  async getAllTransactions(_req: Request, res: Response): Promise<void> {
+    try {
+      const transactions = await this.paymentService.getAllTransactions();
+      res.status(200).json({ success: true, data: transactions });
+    } catch (error) {
+      console.error('Get all transactions error:', error);
+      res.status(500).json({ error: 'Failed to fetch transactions', message: error instanceof Error ? error.message : 'Unknown error occurred' });
+    }
+  }
+
   private validatePaymentRequest(request: any): request is PaymentRequest {
     return !!(
       request &&

@@ -4,6 +4,28 @@ import { UEXIntegrationService, UEXPaymentRequest } from '../services/UEXIntegra
 const router = Router();
 
 /**
+ * @route GET /api/uex/transactions
+ * @desc Get all transactions from UEX backend
+ */
+router.get('/transactions', async (_req: Request, res: Response) => {
+  try {
+    const transactions = await UEXIntegrationService.getAllTransactions();
+    
+    res.status(200).json({
+      success: true,
+      data: transactions,
+      message: 'Retrieved all transactions from UEX backend'
+    });
+  } catch (error: any) {
+    console.error('UEX Get all transactions error:', error);
+    res.status(500).json({
+      error: 'Failed to get transactions from UEX backend',
+      message: error.message
+    });
+  }
+});
+
+/**
  * @route POST /api/uex/process-payment
  * @desc Process a payment through UEX backend
  */
@@ -50,13 +72,13 @@ router.get('/transaction/:id/status', async (req: Request, res: Response) => {
     }
     const status = await UEXIntegrationService.getTransactionStatus(id);
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: status
     });
   } catch (error: any) {
     console.error('UEX Get transaction status error:', error);
-    res.status(404).json({
+    return res.status(404).json({
       error: 'Transaction not found',
       message: error.message
     });
@@ -86,14 +108,14 @@ router.put('/transaction/:id/status', async (req: Request, res: Response) => {
 
     const result = await UEXIntegrationService.updateTransactionStatus(id, status, metadata);
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: result,
       message: 'Transaction status updated successfully'
     });
   } catch (error: any) {
     console.error('UEX Update transaction status error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to update transaction status',
       message: error.message
     });
@@ -114,13 +136,13 @@ router.get('/transaction/:id/fees', async (req: Request, res: Response) => {
     }
     const fees = await UEXIntegrationService.getTransactionFees(id);
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: fees
     });
   } catch (error: any) {
     console.error('UEX Get transaction fees error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to get transaction fees',
       message: error.message
     });
@@ -141,13 +163,13 @@ router.get('/transaction/:id/conversions', async (req: Request, res: Response) =
     }
     const conversions = await UEXIntegrationService.getTransactionConversions(id);
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: conversions
     });
   } catch (error: any) {
     console.error('UEX Get transaction conversions error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to get transaction conversions',
       message: error.message
     });
@@ -171,14 +193,14 @@ router.post('/transaction/:id/settle', async (req: Request, res: Response) => {
     
     const result = await UEXIntegrationService.processSettlement(id, settlementData);
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: result,
       message: 'Settlement processed successfully'
     });
   } catch (error: any) {
     console.error('UEX Settlement processing error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Settlement processing failed',
       message: error.message
     });
@@ -193,14 +215,14 @@ router.get('/health', async (_req: Request, res: Response) => {
   try {
     const health = await UEXIntegrationService.checkHealth();
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: health,
       message: 'UEX backend is healthy'
     });
   } catch (error: any) {
     console.error('UEX Health check error:', error);
-    res.status(503).json({
+    return res.status(503).json({
       error: 'UEX backend is not available',
       message: error.message
     });
@@ -215,13 +237,13 @@ router.get('/info', async (_req: Request, res: Response) => {
   try {
     const info = await UEXIntegrationService.getApiInfo();
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: info
     });
   } catch (error: any) {
     console.error('UEX API info error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to get UEX API information',
       message: error.message
     });
@@ -248,13 +270,13 @@ router.get('/analytics', async (req: Request, res: Response) => {
       endDate as string
     );
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: analytics
     });
   } catch (error: any) {
     console.error('UEX Analytics error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to get analytics',
       message: error.message
     });

@@ -18,14 +18,16 @@ app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env['ALLOWED_ORIGINS']?.split(',') || ['http://localhost:3000'],
-  credentials: true
+  origin: process.env['ALLOWED_ORIGINS']?.split(',') || ['http://localhost:3000', 'http://localhost:3002', 'http://localhost:3003'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept']
 }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 1000, // allow 1000 requests per minute for development
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);

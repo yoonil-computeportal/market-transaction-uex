@@ -62,7 +62,7 @@ export class PaymentProcessingService {
         settlement_method: request.settlement_method
       };
 
-      await this.dbService.createPaymentTransaction(transaction);
+      await this.dbService.createPaymentTransactionWithId(transaction, transactionId);
 
       // Step 4: Create currency conversion record if needed
       if (request.currency !== request.target_currency) {
@@ -247,5 +247,9 @@ export class PaymentProcessingService {
 
   async getTransactionConversions(transactionId: string): Promise<CurrencyConversion[]> {
     return await this.dbService.getCurrencyConversionsByTransaction(transactionId);
+  }
+
+  async getAllTransactions(): Promise<PaymentTransaction[]> {
+    return this.dbService.getAllPaymentTransactions();
   }
 } 

@@ -3,43 +3,21 @@ import { logger } from '../utils/logger'
 
 const router = Router()
 
-// Mock data for demonstration
-const mockOrders = [
-  {
-    id: 'order-1',
-    userId: 'user-1',
-    resources: [
-      {
-        resourceId: 'cpu-1',
-        quantity: 2,
-        price: 2.50,
-        specifications: { cpu: 32, memory: 128 }
-      }
-    ],
-    totalAmount: 5.00,
-    currency: 'USD',
-    status: 'completed',
-    createdAt: '2024-01-15T10:30:00Z',
-    updatedAt: '2024-01-15T10:35:00Z'
-  },
-  {
-    id: 'order-2',
-    userId: 'user-1',
-    resources: [
-      {
-        resourceId: 'gpu-1',
-        quantity: 1,
-        price: 5.00,
-        specifications: { gpu: 'RTX 4090', memory: 24 }
-      }
-    ],
-    totalAmount: 5.00,
-    currency: 'USD',
-    status: 'pending',
-    createdAt: '2024-01-16T14:20:00Z',
-    updatedAt: '2024-01-16T14:20:00Z'
-  }
-]
+// Real orders storage (replaces mock data)
+const orders: any[] = []
+
+// Clear old orders without UEX transaction IDs (for development)
+const clearOldOrders = () => {
+  const initialLength = orders.length
+  const filteredOrders = orders.filter(order => order.uexTransactionId)
+  orders.length = 0
+  orders.push(...filteredOrders)
+  logger.info(`Cleared ${initialLength - filteredOrders.length} old orders without UEX transaction IDs`)
+}
+
+// Initialize with clean state (no old orders)
+orders.length = 0
+logger.info('Cleared all old orders - starting with clean state')
 
 // POST /api/orders
 router.post('/', (req, res) => {
@@ -51,7 +29,7 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Invalid order data' })
     }
     
-    // Create new order
+    // Create new order with UEX transaction ID
     const newOrder = {
       id: `order-${Date.now()}`,
       userId: orderData.userId || 'user-1',
@@ -59,13 +37,14 @@ router.post('/', (req, res) => {
       totalAmount: orderData.totalAmount,
       currency: orderData.currency || 'USD',
       status: 'pending',
+      uexTransactionId: orderData.uexTransactionId, // Store UEX transaction ID
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
     
-    mockOrders.push(newOrder)
+    orders.push(newOrder)
     
-    logger.info(`Order created: ${newOrder.id}`)
+    logger.info(`Order created: ${newOrder.id} with UEX transaction: ${newOrder.uexTransactionId}`)
     return res.status(201).json(newOrder)
   } catch (error) {
     logger.error('Create order error:', error)
@@ -79,7 +58,7 @@ router.get('/user', (req, res) => {
     const { page = 1, limit = 20, status } = req.query
     const userId = req.query['userId'] || 'user-1'
     
-    let filteredOrders = mockOrders.filter(o => o.userId === userId)
+    let filteredOrders = orders.filter(o => o.userId === userId)
     
     if (status) {
       filteredOrders = filteredOrders.filter(o => o.status === status)
@@ -109,7 +88,7 @@ router.get('/user', (req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const { id } = req.params
-    const order = mockOrders.find(o => o.id === id)
+    const order = orders.find(o => o.id === id)
     
     if (!order) {
       return res.status(404).json({ error: 'Order not found' })
@@ -128,19 +107,19 @@ router.put('/:id', (req, res) => {
     const { id } = req.params
     const updates = req.body
     
-    const orderIndex = mockOrders.findIndex(o => o.id === id)
+    const orderIndex = orders.findIndex(o => o.id === id)
     if (orderIndex === -1) {
       return res.status(404).json({ error: 'Order not found' })
     }
     
-    mockOrders[orderIndex] = {
-      ...mockOrders[orderIndex],
+    orders[orderIndex] = {
+      ...orders[orderIndex],
       ...updates,
       updatedAt: new Date().toISOString()
     }
     
     logger.info(`Order updated: ${id}`)
-    return res.json(mockOrders[orderIndex])
+    return res.json(orders[orderIndex])
   } catch (error) {
     logger.error('Update order error:', error)
     return res.status(500).json({ error: 'Internal server error' })
@@ -152,11 +131,11 @@ router.post('/:id/cancel', (req, res) => {
   try {
     const { id } = req.params
     
-    const orderIndex = mockOrders.findIndex(o => o.id === id)
+    const orderIndex = orders.findIndex(o => o.id === id)
     if (orderIndex === -1) {
       return res.status(404).json({ error: 'Order not found' })
     }
-    const order = mockOrders[orderIndex]
+    const order = orders[orderIndex]
     if (!order) {
       return res.status(404).json({ error: 'Order not found' })
     }
@@ -167,6 +146,23 @@ router.post('/:id/cancel', (req, res) => {
     return res.json(order)
   } catch (error) {
     logger.error('Cancel order error:', error)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// POST /api/orders/clear-old
+router.post('/clear-old', (_req, res) => {
+  try {
+    const initialLength = orders.length
+    clearOldOrders()
+    const finalLength = orders.length
+    
+    return res.json({
+      message: `Cleared ${initialLength - finalLength} old orders without UEX transaction IDs`,
+      remainingOrders: finalLength
+    })
+  } catch (error) {
+    logger.error('Clear old orders error:', error)
     return res.status(500).json({ error: 'Internal server error' })
   }
 })

@@ -25,6 +25,8 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
 
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<UEXPaymentResponse | null>(null);
+  const [pollingStatus, setPollingStatus] = useState<string>('');
+  const [pollingError, setPollingError] = useState<string>('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -54,6 +56,7 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
         totalAmount: formData.amount,
         currency: formData.currency,
         status: 'pending',
+        uexTransactionId: paymentResponse.transaction_id, // Store real UEX transaction ID
       });
       // 결제 성공 후 management-tier에 트랜잭션 저장
       await fetch('http://localhost:9000/api/management/integration/transactions/update', {
@@ -73,36 +76,72 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
 
       // 결제 상태 polling 및 management-tier에 상태 동기화
       const pollTransactionStatus = async (transactionId: string, userId: string) => {
+        if (!transactionId) {
+          console.warn('No UEX transaction ID available for polling');
+          setPollingError('No transaction ID available for status tracking');
+          return;
+        }
+        
+        setPollingStatus('Tracking payment status...');
+        setPollingError('');
+        
         let lastStatus = paymentResponse.status;
         let settled = false;
-        while (!settled) {
+        let retryCount = 0;
+        const maxRetries = 10; // Limit retries to avoid infinite polling
+        
+        while (!settled && retryCount < maxRetries) {
           try {
             const res = await fetch(`http://localhost:3001/api/payments/transaction/${transactionId}/status`);
+            if (!res.ok) {
+              if (res.status === 404) {
+                console.warn(`UEX transaction ${transactionId} not found, stopping polling`);
+                setPollingError(`Transaction ${transactionId} not found in UEX system. This may be a temporary issue.`);
+                setPollingStatus('');
+                break;
+              }
+              throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
             const data = await res.json();
             const status = data.data.status;
             if (status !== lastStatus) {
-              // 상태가 바뀌면 management-tier에 업데이트
-              await fetch('http://localhost:9000/api/management/integration/transactions/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  transactionId,
-                  orderId: order.id,
-                  userId,
-                  status,
-                  amount: paymentResponse.amount,
-                  fees: paymentResponse.fees?.total_fee ?? 0,
-                }),
-              });
+              // Update management-tier when status changes
+              try {
+                await fetch('http://localhost:9000/api/management/integration/transactions/update', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    transactionId,
+                    orderId: order.id,
+                    userId,
+                    status,
+                    amount: paymentResponse.amount,
+                    fees: paymentResponse.fees?.total_fee ?? 0,
+                  }),
+                });
+              } catch (updateErr) {
+                console.warn('Failed to update management-tier:', updateErr);
+              }
               lastStatus = status;
             }
-            if (status === 'settled' || status === 'failed') {
+            if (status === 'settled' || status === 'failed' || status === 'completed') {
               settled = true;
+              setPollingStatus(`Payment ${status}. Tracking complete.`);
             } else {
-              await new Promise(res => setTimeout(res, 3000)); // 3초 대기 후 재시도
+              setPollingStatus(`Payment status: ${status}. Checking for updates...`);
+              await new Promise(res => setTimeout(res, 3000)); // Wait 3 seconds before retry
+              retryCount++;
             }
           } catch (err) {
-            // 네트워크 오류 등은 무시하고 재시도
+            console.error('Error polling transaction status:', err);
+            retryCount++;
+            if (retryCount >= maxRetries) {
+              console.warn('Max retries reached, stopping polling');
+              setPollingError('Unable to track payment status after multiple attempts. Please check your order history.');
+              setPollingStatus('');
+              break;
+            }
+            setPollingStatus(`Connection error. Retrying... (${retryCount}/${maxRetries})`);
             await new Promise(res => setTimeout(res, 3000));
           }
         }
@@ -261,6 +300,18 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
             <p><strong>Total Fees:</strong> {response.fees.total_fee} {response.currency}</p>
             <p><strong>Estimated Settlement:</strong> {new Date(response.estimated_settlement_time).toLocaleString()}</p>
           </div>
+        </div>
+      )}
+
+      {pollingStatus && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-sm text-blue-700">{pollingStatus}</p>
+        </div>
+      )}
+
+      {pollingError && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-700">{pollingError}</p>
         </div>
       )}
     </div>

@@ -25,7 +25,7 @@ const app = express()
 const server = createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: process.env['CLIENT_URL'] || 'http://localhost:3000',
+    origin: process.env['CLIENT_URL'] || 'http://localhost:3000,http://localhost:3002,http://localhost:3003',
     methods: ['GET', 'POST']
   }
 })
@@ -33,7 +33,7 @@ const io = new Server(server, {
 // Middleware
 app.use(helmet())
 app.use(  cors({
-    origin: process.env['CLIENT_URL'] || 'http://localhost:3000',
+    origin: process.env['CLIENT_URL'] || 'http://localhost:3000,http://localhost:3002,http://localhost:3003',
     credentials: true
   }))
 app.use(compression())

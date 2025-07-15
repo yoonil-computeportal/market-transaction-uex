@@ -91,6 +91,24 @@ export const OrderManagement: React.FC = () => {
                   <p className="text-sm text-gray-600">
                     {order.resources.length} resources
                   </p>
+                  {/* UEX Transaction Status */}
+                  <div className="mt-2">
+                    {order.uexTransactionId ? (
+                      <div className="text-sm">
+                        <span className="text-gray-600">UEX Transaction: </span>
+                        <span className="font-mono text-blue-600">
+                          {`${order.uexTransactionId}`.slice(-8)}
+                        </span>
+                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          Payment Processed
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-sm">
+                        <span className="text-gray-500 italic">No payment record</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-gray-900">
