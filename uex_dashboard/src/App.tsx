@@ -95,6 +95,8 @@ const App: React.FC = () => {
     switch (status.toLowerCase()) {
       case 'completed':
         return { color: '#10b981', bg: '#d1fae5', icon: '✅' };
+      case 'settled':
+        return { color: '#10b981', bg: '#d1fae5', icon: '❗' };
       case 'processing':
         return { color: '#f59e0b', bg: '#fef3c7', icon: '⏳' };
       case 'pending':

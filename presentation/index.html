@@ -274,6 +274,13 @@
     .slide-container::-webkit-scrollbar-thumb:hover {
       background: #229954;
     }
+
+    .slide-separator {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #27ae60, transparent);
+      margin: 15px 20px;
+      opacity: 0.6;
+    }
   </style>
 </head>
 <body>
@@ -299,73 +306,34 @@
           <span class="slide-number">Management-Tier</span>
           <span class="slide-title">Payment Fee Dashboard</span>
         </div>
-        <div class="slide-item" onclick="loadSlide('slide4.html')">
-          <span class="slide-number">04</span>
-          <span class="slide-title">Component Data Flow Architecture</span>
+        <div class="slide-item" onclick="loadSlide('http://localhost:3003')">
+          <span class="slide-number">UEX Backend</span>
+          <span class="slide-title">Payment Transactino Processing</span>
         </div>
-        <div class="slide-item" onclick="loadSlide('slide5.html')">
-          <span class="slide-number">05</span>
-          <span class="slide-title">Client Tier - Wallet Interface Overview</span>
+        <div class="slide-separator"></div>
+        <div class="slide-item" onclick="loadSlide('casei.html')">
+          <span class="slide-number">CASE I</span>
+          <span class="slide-title">Same currency (no conversion)</span>
         </div>
-        <div class="slide-item" onclick="loadSlide('slide6.html')">
-          <span class="slide-number">06</span>
-          <span class="slide-title">Ethereum Wallet Features & Requirements</span>
+        <div class="slide-item" onclick="loadSlide('caseii.html')">
+          <span class="slide-number">CASE II</span>
+          <span class="slide-title">Cross-fiat conversion</span>
         </div>
-        <div class="slide-item" onclick="loadSlide('slide7.html')">
-          <span class="slide-number">07</span>
-          <span class="slide-title">Cardano Wallet Features & Requirements</span>
+        <div class="slide-item" onclick="loadSlide('caseiii.html')">
+          <span class="slide-number">CASE III</span>
+          <span class="slide-title">Fiat-to-crypto conversion</span>
         </div>
-        <div class="slide-item" onclick="loadSlide('slide8.html')">
-          <span class="slide-number">08</span>
-          <span class="slide-title">Processing Tier - Resource Monitor Overview</span>
+        <div class="slide-item" onclick="loadSlide('caseiv.html')">
+          <span class="slide-number">CASE IV</span>
+          <span class="slide-title">Crypto-to-fiat conversion</span>
         </div>
-        <div class="slide-item" onclick="loadSlide('slide9.html')">
-          <span class="slide-number">09</span>
-          <span class="slide-title">Resource Consumption Tracking</span>
+        <div class="slide-item" onclick="loadSlide('casev.html')">
+          <span class="slide-number">CASE V</span>
+          <span class="slide-title">Same Cryptocurrency (no conversion)</span>
         </div>
-        <div class="slide-item" onclick="loadSlide('slide10.html')">
-          <span class="slide-number">10</span>
-          <span class="slide-title">Processing Tier - Payment Manager</span>
-        </div>
-        <div class="slide-item" onclick="loadSlide('slide11.html')">
-          <span class="slide-number">11</span>
-          <span class="slide-title">UEX Payment Gateway Integration</span>
-        </div>
-        <div class="slide-item" onclick="loadSlide('slide12.html')">
-          <span class="slide-number">12</span>
-          <span class="slide-title">Management Tier - Resource Accounting</span>
-        </div>
-        <div class="slide-item" onclick="loadSlide('slide13.html')">
-          <span class="slide-number">13</span>
-          <span class="slide-title">Transaction Fee Implementation</span>
-        </div>
-        <div class="slide-item" onclick="loadSlide('slide14.html')">
-          <span class="slide-number">14</span>
-          <span class="slide-title">Billing and Invoicing System</span>
-        </div>
-        <div class="slide-item" onclick="loadSlide('slide15.html')">
-          <span class="slide-number">15</span>
-          <span class="slide-title">Security Framework</span>
-        </div>
-        <div class="slide-item" onclick="loadSlide('slide16.html')">
-          <span class="slide-number">16</span>
-          <span class="slide-title">API Integration Architecture</span>
-        </div>
-        <div class="slide-item" onclick="loadSlide('slide17.html')">
-          <span class="slide-number">17</span>
-          <span class="slide-title">Performance Requirements</span>
-        </div>
-        <div class="slide-item" onclick="loadSlide('slide18.html')">
-          <span class="slide-number">18</span>
-          <span class="slide-title">Infrastructure Requirements</span>
-        </div>
-        <div class="slide-item" onclick="loadSlide('slide19.html')">
-          <span class="slide-number">19</span>
-          <span class="slide-title">Development Phases & Timeline</span>
-        </div>
-        <div class="slide-item" onclick="loadSlide('slide20.html')">
-          <span class="slide-number">20</span>
-          <span class="slide-title">Success Metrics & Next Steps</span>
+        <div class="slide-item" onclick="loadSlide('casevi.html')">
+          <span class="slide-number">CASE VI</span>
+          <span class="slide-title">Crypto-to-crypto conversion</span>
         </div>
       </div>
     </div>
