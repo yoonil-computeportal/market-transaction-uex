@@ -14,12 +14,14 @@ export class PaymentProcessingService {
   private dbService: DatabaseService;
   private exchangeRateService: ExchangeRateService;
 
-  // Fee structure configuration
+  // Fee structure configuration for CASE IV: Crypto-to-fiat conversion
   private feeStructure: FeeStructure = {
-    conversion_fee_percentage: 0.02, // 2%
-    management_fee_percentage: 0.01, // 1%
-    minimum_fee: 1.0,
-    maximum_fee: 50.0,
+    uex_buyer_fee_percentage: 0.001, // 0.1% from buyer
+    uex_seller_fee_percentage: 0.001, // 0.1% from seller
+    conversion_fee_percentage: 0.002, // 0.2% conversion fee when currencies differ
+    management_fee_percentage: 0.01, // 1.0% management fee (0.5% buyer + 0.5% seller)
+    minimum_fee: 0.001, // Reduced minimum fee for better accuracy
+    maximum_fee: 100.0,
     currency: 'USD'
   };
 
@@ -35,16 +37,27 @@ export class PaymentProcessingService {
       // Step 1: Validate the payment request
       await this.validatePaymentRequest(request);
 
-      // Step 2: Calculate exchange rate and fees
+      // Step 2: Calculate exchange rate and fees for CASE IV: Crypto-to-fiat
       const exchangeRate = await this.exchangeRateService.getExchangeRate(
         request.currency, 
         request.target_currency
       );
 
-      const conversionFee = 0; // Removed conversion fee
-      const managementFee = 0; // Removed management fee
-      const totalFee = 0; // No fees
-      const totalAmount = request.amount; // Total amount equals base amount
+      // Calculate UEX fees (0.1% from buyer, 0.1% from seller)
+      const uexBuyerFee = this.calculateUEXBuyerFee(request.amount);
+      const uexSellerFee = this.calculateUEXSellerFee(request.amount);
+      const conversionFee = this.calculateConversionFee(request.amount, exchangeRate, request.currency, request.target_currency);
+      
+      // Calculate management fee (1.0% total: 0.5% from buyer, 0.5% from seller)
+      const totalManagementFee = this.calculateManagementFee(request.amount);
+      const managementBuyerFee = totalManagementFee * 0.5; // 0.5% from buyer
+      const managementSellerFee = totalManagementFee * 0.5; // 0.5% from seller
+      
+      // Total fees: UEX fees + management fees (split between buyer and seller)
+      const totalBuyerFees = uexBuyerFee + managementBuyerFee + conversionFee;
+      const totalSellerFees = uexSellerFee + managementSellerFee;
+      const totalFee = totalBuyerFees + totalSellerFees;
+      const totalAmount = request.amount + totalBuyerFees; // Total amount includes ONLY buyer fees
 
       // Step 3: Create the payment transaction
       const transaction: Omit<PaymentTransaction, 'id' | 'created_at' | 'updated_at'> = {
@@ -54,8 +67,10 @@ export class PaymentProcessingService {
         currency: request.currency,
         target_currency: request.target_currency,
         conversion_rate: exchangeRate,
+        uex_buyer_fee: uexBuyerFee,
+        uex_seller_fee: uexSellerFee,
         conversion_fee: conversionFee,
-        management_fee: managementFee,
+        management_fee: totalManagementFee, // Total management fee for record keeping
         total_amount: totalAmount,
         status: 'pending',
         payment_method: request.payment_method,
@@ -95,11 +110,13 @@ export class PaymentProcessingService {
         target_currency: request.target_currency,
         conversion_rate: exchangeRate,
         fees: {
-          conversion_fee: 0,
-          management_fee: 0,
-          total_fee: 0
+          uex_buyer_fee: uexBuyerFee,
+          uex_seller_fee: uexSellerFee,
+          conversion_fee: conversionFee,
+          management_fee: totalManagementFee,
+          total_fee: totalBuyerFees // Only buyer fees for total_fee
         },
-        total_amount: request.amount, // Total amount equals base amount
+        total_amount: totalAmount, // Total amount includes fees
         estimated_settlement_time: estimatedSettlementTime,
         created_at: new Date()
       };
@@ -161,7 +178,28 @@ export class PaymentProcessingService {
     }
   }
 
-  private calculateConversionFee(amount: number, _exchangeRate: number): number {
+  private calculateUEXBuyerFee(amount: number): number {
+    const fee = amount * this.feeStructure.uex_buyer_fee_percentage;
+    return Math.max(
+      this.feeStructure.minimum_fee,
+      Math.min(fee, this.feeStructure.maximum_fee)
+    );
+  }
+
+  private calculateUEXSellerFee(amount: number): number {
+    const fee = amount * this.feeStructure.uex_seller_fee_percentage;
+    return Math.max(
+      this.feeStructure.minimum_fee,
+      Math.min(fee, this.feeStructure.maximum_fee)
+    );
+  }
+
+  private calculateConversionFee(amount: number, exchangeRate: number, sourceCurrency: string, targetCurrency: string): number {
+    // Only apply conversion fee when currencies are different
+    if (sourceCurrency === targetCurrency) {
+      return 0;
+    }
+    
     const fee = amount * this.feeStructure.conversion_fee_percentage;
     return Math.max(
       this.feeStructure.minimum_fee,

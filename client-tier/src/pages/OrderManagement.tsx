@@ -1,9 +1,39 @@
-import React, { useState } from 'react'
+import * as React from 'react'
+import { useState } from 'react'
 import { useQuery } from 'react-query'
 import { orderApi } from '../services/api'
 import { Order } from '../types'
 
-// Component to display UEX transaction status
+// Component to display UEX transaction total amount
+const UEXTransactionAmount: React.FC<{ transactionId: string }> = ({ transactionId }) => {
+  const { data: transactionDetails } = useQuery(
+    ['uex-transaction-amount', transactionId],
+    async () => {
+      const response = await fetch(`http://localhost:3001/api/payments/transactions`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch UEX transactions')
+      }
+      const data = await response.json()
+      return data.data?.find((tx: any) => tx.id === transactionId)
+    },
+    {
+      enabled: !!transactionId,
+      retry: 3
+    }
+  )
+
+  if (!transactionDetails) {
+    return <span>Loading...</span>
+  }
+
+  return (
+    <span>
+      ${transactionDetails.total_amount.toFixed(2)}
+    </span>
+  )
+}
+
+// Component to display UEX transaction status and fees
 const UEXTransactionStatus: React.FC<{ transactionId: string }> = ({ transactionId }) => {
   const { data: uexStatus, isLoading, error } = useQuery(
     ['uex-status', transactionId],
@@ -18,6 +48,23 @@ const UEXTransactionStatus: React.FC<{ transactionId: string }> = ({ transaction
       refetchInterval: 10000, // Refresh every 10 seconds
       retry: 3,
       enabled: !!transactionId
+    }
+  )
+
+  // Fetch transaction details including fees
+  const { data: transactionDetails } = useQuery(
+    ['uex-transaction', transactionId],
+    async () => {
+      const response = await fetch(`http://localhost:3001/api/payments/transactions`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch UEX transactions')
+      }
+      const data = await response.json()
+      return data.data?.find((tx: any) => tx.id === transactionId)
+    },
+    {
+      enabled: !!transactionId,
+      retry: 3
     }
   )
 
@@ -65,14 +112,53 @@ const UEXTransactionStatus: React.FC<{ transactionId: string }> = ({ transaction
   }
 
   return (
-    <div className="text-sm">
-      <span className="text-gray-600">UEX Transaction: </span>
-      <span className="font-mono text-blue-600">
-        {`${transactionId}`.slice(-8)}
-      </span>
-      <span className={`ml-2 text-xs px-2 py-1 rounded ${getStatusColor(status)}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
+    <div className="text-sm space-y-2">
+      <div>
+        <span className="text-gray-600">UEX Transaction: </span>
+        <span className="font-mono text-blue-600">
+          {`${transactionId}`.slice(-8)}
+        </span>
+        <span className={`ml-2 text-xs px-2 py-1 rounded ${getStatusColor(status)}`}>
+          {status.charAt(0).toUpperCase() + status.slice(1)}
+        </span>
+      </div>
+      
+      {/* Fee Information */}
+      {transactionDetails && (
+        <div className="bg-gray-50 rounded p-2 text-xs">
+          <div className="text-gray-600 mb-1">Fee Breakdown:</div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <span>Base Amount:</span>
+              <span className="font-medium">{transactionDetails.amount} {transactionDetails.currency}</span>
+            </div>
+            {transactionDetails.uex_buyer_fee > 0 && (
+              <div className="flex justify-between">
+                <span>UEX Buyer Fee:</span>
+                <span className="font-medium text-red-600">{transactionDetails.uex_buyer_fee.toFixed(4)} {transactionDetails.currency}</span>
+              </div>
+            )}
+            {transactionDetails.management_fee > 0 && (
+              <div className="flex justify-between">
+                <span>Management Buyer Fee:</span>
+                <span className="font-medium text-red-600">{(transactionDetails.management_fee * 0.5).toFixed(4)} {transactionDetails.currency}</span>
+              </div>
+            )}
+            {transactionDetails.conversion_fee > 0 && (
+              <div className="flex justify-between">
+                <span>Conversion Fee:</span>
+                <span className="font-medium text-red-600">{transactionDetails.conversion_fee.toFixed(4)} {transactionDetails.currency}</span>
+              </div>
+            )}
+            <div className="border-t border-gray-200 pt-1 mt-1">
+              <div className="flex justify-between font-semibold">
+                <span>Total Amount:</span>
+                <span className="font-semibold">{transactionDetails.total_amount} {transactionDetails.currency}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -152,7 +238,9 @@ export const OrderManagement: React.FC = () => {
       {/* Orders List */}
       {!isLoading && Array.isArray(ordersData?.data) && (
         <div className="space-y-4">
-          {ordersData.data.map((order: Order) => (
+          {ordersData.data
+            .sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .map((order: Order) => (
             <div key={order.id} className="card">
               <div className="flex justify-between items-start">
                 <div>
@@ -178,7 +266,11 @@ export const OrderManagement: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-gray-900">
-                    ${(order.totalAmount || 0).toFixed(2)}
+                    {order.uexTransactionId ? (
+                      <UEXTransactionAmount transactionId={order.uexTransactionId} />
+                    ) : (
+                      `$${(order.totalAmount || 0).toFixed(2)}`
+                    )}
                   </div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     order.status === 'completed' ? 'bg-green-100 text-green-800' :

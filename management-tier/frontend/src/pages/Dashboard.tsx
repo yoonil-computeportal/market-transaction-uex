@@ -178,6 +178,15 @@ const Dashboard: React.FC = () => {
                     Amount
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fees
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Conversion
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -200,6 +209,67 @@ const Dashboard: React.FC = () => {
                         <span className="text-xs text-gray-500 ml-1">
                           → {payment.target_currency}
                         </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      <div className="space-y-1">
+                        {payment.uex_buyer_fee && payment.uex_buyer_fee > 0 && (
+                          <div className="flex justify-between text-xs">
+                            <span>Buyer:</span>
+                            <span className="text-red-600 font-medium">
+                              {formatCurrency(payment.uex_buyer_fee, payment.currency)}
+                            </span>
+                          </div>
+                        )}
+                        {payment.uex_seller_fee && payment.uex_seller_fee > 0 && (
+                          <div className="flex justify-between text-xs">
+                            <span>Seller:</span>
+                            <span className="text-red-600 font-medium">
+                              {formatCurrency(payment.uex_seller_fee, payment.currency)}
+                            </span>
+                          </div>
+                        )}
+                        {payment.conversion_fee && payment.conversion_fee > 0 && (
+                          <div className="flex justify-between text-xs">
+                            <span>Conv:</span>
+                            <span className="text-red-600 font-medium">
+                              {formatCurrency(payment.conversion_fee, payment.currency)}
+                            </span>
+                          </div>
+                        )}
+                        {payment.management_fee && payment.management_fee > 0 && (
+                          <>
+                            <div className="flex justify-between text-xs">
+                              <span>Mgmt Buyer:</span>
+                              <span className="text-red-600 font-medium">
+                                {formatCurrency(payment.management_fee * 0.5, payment.currency)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span>Mgmt Seller:</span>
+                              <span className="text-red-600 font-medium">
+                                {formatCurrency(payment.management_fee * 0.5, payment.currency)}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      {formatCurrency(payment.total_amount || payment.amount, payment.currency)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {payment.currency !== payment.target_currency && payment.conversion_rate ? (
+                        <div className="text-xs">
+                          <div className="font-medium">
+                            1 {payment.currency} = {payment.conversion_rate.toFixed(4)} {payment.target_currency}
+                          </div>
+                          <div className="text-gray-500">
+                            {payment.currency} → {payment.target_currency}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">No conversion</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

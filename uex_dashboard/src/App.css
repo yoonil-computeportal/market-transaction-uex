@@ -329,6 +329,70 @@ body {
   font-size: 0.75rem;
 }
 
+.fees {
+  font-size: 0.875rem;
+}
+
+.fee-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.fee-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fee-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.fee-amount {
+  font-size: 0.75rem;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.total-amount {
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.conversion {
+  font-size: 0.875rem;
+}
+
+.conversion-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.conversion-rate {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.conversion-pair {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.no-conversion {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
 .date {
   color: #6b7280;
   font-size: 0.75rem;

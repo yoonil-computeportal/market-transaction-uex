@@ -14,6 +14,12 @@ interface PaymentTransaction {
   status: 'initiated' | 'processing' | 'settled' | 'failed';
   created_at: string;
   updated_at: string;
+  uex_buyer_fee?: number;
+  uex_seller_fee?: number;
+  conversion_fee?: number;
+  management_fee?: number;
+  total_amount: number;
+  conversion_rate?: number;
   fees?: {
     processing_fee: number;
     currency_conversion_fee: number;
@@ -64,6 +70,12 @@ export class PaymentController {
         status: this.mapUexStatusToPaymentStatus(txn.status),
         created_at: txn.created_at,
         updated_at: txn.updated_at,
+        uex_buyer_fee: parseFloat(txn.uex_buyer_fee || 0),
+        uex_seller_fee: parseFloat(txn.uex_seller_fee || 0),
+        conversion_fee: parseFloat(txn.conversion_fee || 0),
+        management_fee: parseFloat(txn.management_fee || 0),
+        total_amount: parseFloat(txn.total_amount || txn.amount),
+        conversion_rate: parseFloat(txn.conversion_rate || 0),
         fees: {
           processing_fee: parseFloat(txn.management_fee || 0),
           currency_conversion_fee: parseFloat(txn.conversion_fee || 0),
@@ -130,6 +142,12 @@ export class PaymentController {
         status: this.mapUexStatusToPaymentStatus(txn.status),
         created_at: txn.created_at,
         updated_at: txn.updated_at,
+        uex_buyer_fee: parseFloat(txn.uex_buyer_fee || 0),
+        uex_seller_fee: parseFloat(txn.uex_seller_fee || 0),
+        conversion_fee: parseFloat(txn.conversion_fee || 0),
+        management_fee: parseFloat(txn.management_fee || 0),
+        total_amount: parseFloat(txn.total_amount || txn.amount),
+        conversion_rate: parseFloat(txn.conversion_rate || 0),
         fees: {
           processing_fee: parseFloat(txn.management_fee || 0),
           currency_conversion_fee: parseFloat(txn.conversion_fee || 0),

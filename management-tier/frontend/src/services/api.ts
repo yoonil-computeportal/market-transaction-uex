@@ -12,6 +12,12 @@ export interface PaymentTransaction {
   status: 'initiated' | 'processing' | 'settled' | 'failed';
   created_at: string;
   updated_at: string;
+  uex_buyer_fee?: number;
+  uex_seller_fee?: number;
+  conversion_fee?: number;
+  management_fee?: number;
+  total_amount: number;
+  conversion_rate?: number;
   fees?: {
     processing_fee: number;
     currency_conversion_fee: number;

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import * as React from 'react';
+import { useState } from 'react';
 import { UEXApiService, UEXPaymentRequest, UEXPaymentResponse } from '../services/uexApi';
 import { orderApi } from '../services/api';
+import { FeeApprovalModal } from './FeeApprovalModal';
 
 interface UEXPaymentFormProps {
   onPaymentSuccess?: (response: UEXPaymentResponse) => void;
@@ -27,13 +29,61 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
   const [response, setResponse] = useState<UEXPaymentResponse | null>(null);
   const [pollingStatus, setPollingStatus] = useState<string>('');
   const [pollingError, setPollingError] = useState<string>('');
+  const [showFeeApproval, setShowFeeApproval] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<UEXPaymentResponse | null>(null);
+  const [feePreview, setFeePreview] = useState<{
+    uexBuyerFee: number;
+    managementBuyerFee: number;
+    conversionFee: number;
+    totalBuyerFees: number;
+    totalAmount: number;
+  } | null>(null);
+
+  const calculateFeePreview = (amount: number) => {
+    if (amount <= 0) {
+      setFeePreview(null);
+      return;
+    }
+
+    // Calculate UEX buyer fee (0.1%)
+    const uexBuyerFee = Math.max(0.001, Math.min(amount * 0.001, 100)); // Minimum $0.001 instead of $0.1
+    
+    // Calculate management buyer fee (0.5% of total management fee)
+    const totalManagementFee = Math.max(0.001, Math.min(amount * 0.01, 100)); // Minimum $0.001 instead of $0.1
+    const managementBuyerFee = totalManagementFee * 0.5;
+    
+    // Calculate conversion fee (only applies when currencies are different)
+    const hasConversion = formData.currency !== formData.target_currency;
+    const conversionFee = hasConversion ? Math.max(0.001, Math.min(amount * 0.002, 50)) : 0; // 0.2% conversion fee when applicable
+    
+    // Total buyer fees: UEX buyer fee + Management buyer fee + Conversion fee
+    const totalBuyerFees = uexBuyerFee + managementBuyerFee + conversionFee;
+    const totalAmount = amount + totalBuyerFees;
+
+    setFeePreview({
+      uexBuyerFee,
+      managementBuyerFee,
+      conversionFee,
+      totalBuyerFees,
+      totalAmount
+    });
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    const newValue = name === 'amount' ? parseFloat(value) || 0 : value;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'amount' ? parseFloat(value) || 0 : value
+      [name]: newValue
     }));
+
+    // Calculate fee preview when amount or currencies change
+    if (name === 'amount') {
+      calculateFeePreview(parseFloat(value) || 0);
+    } else if (name === 'currency' || name === 'target_currency') {
+      calculateFeePreview(formData.amount);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,8 +92,32 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
     setResponse(null);
 
     try {
-      // Process payment via UEX backend
+      // Process payment via UEX backend to get fee calculation
       const paymentResponse = await UEXApiService.processPayment(formData);
+      
+      // Show fee approval modal for crypto-to-fiat conversions
+      const isCryptoToFiat = formData.currency !== formData.target_currency && 
+        (formData.currency === 'BTC' || formData.currency === 'ETH') && 
+        (formData.target_currency === 'USD' || formData.target_currency === 'EUR' || formData.target_currency === 'GBP');
+      
+      if (isCryptoToFiat && paymentResponse.fees.total_fee > 0) {
+        setPendingPayment(paymentResponse);
+        setShowFeeApproval(true);
+        setLoading(false);
+        return;
+      }
+      
+      // For non-crypto-to-fiat or no fees, proceed directly
+      await processApprovedPayment(paymentResponse);
+    } catch (err: any) {
+      setLoading(false);
+      const errorMessage = err.message || 'Payment failed';
+      onPaymentError?.(errorMessage);
+    }
+  };
+
+  const processApprovedPayment = async (paymentResponse: UEXPaymentResponse) => {
+    try {
       // Create order in marketplace backend
       const order = await orderApi.create({
         userId: formData.client_id,
@@ -58,6 +132,7 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
         status: 'pending',
         uexTransactionId: paymentResponse.transaction_id, // Store real UEX transaction ID
       });
+      
       // 결제 성공 후 management-tier에 트랜잭션 저장
       await fetch('http://localhost:9000/api/management/integration/transactions/update', {
         method: 'POST',
@@ -71,6 +146,7 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
           fees: paymentResponse.fees?.total_fee ?? 0,
         }),
       });
+      
       setResponse(paymentResponse);
       onPaymentSuccess?.(paymentResponse);
 
@@ -156,7 +232,35 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
     }
   };
 
+  const handleFeeApproval = async () => {
+    if (!pendingPayment) return;
+    
+    setShowFeeApproval(false);
+    setLoading(true);
+    
+    try {
+      await processApprovedPayment(pendingPayment);
+    } catch (err: any) {
+      setLoading(false);
+      const errorMessage = err.message || 'Payment failed';
+      onPaymentError?.(errorMessage);
+    }
+  };
+
+  const handleFeeRejection = () => {
+    setShowFeeApproval(false);
+    setPendingPayment(null);
+    setLoading(false);
+  };
+
   const supportedCurrencies = ['USD', 'EUR', 'GBP', 'BTC', 'ETH'];
+
+  // Calculate initial fee preview if amount is provided
+  React.useEffect(() => {
+    if (formData.amount > 0) {
+      calculateFeePreview(formData.amount);
+    }
+  }, []);
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
@@ -209,6 +313,60 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
             placeholder="Enter amount"
           />
         </div>
+
+        {/* Fee Preview Section */}
+        {feePreview && formData.amount > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-blue-900 mb-3">Fee Breakdown (Buyer Fees Only)</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-blue-700">Base Amount:</span>
+                <span className="font-medium text-blue-900">
+                  {formData.amount.toFixed(2)} {formData.currency}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-blue-700">UEX Buyer Fee (0.1%):</span>
+                <span className="font-medium text-blue-900">
+                  {feePreview.uexBuyerFee.toFixed(4)} {formData.currency}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-blue-700">Management Buyer Fee (0.5%):</span>
+                <span className="font-medium text-blue-900">
+                  {feePreview.managementBuyerFee.toFixed(4)} {formData.currency}
+                </span>
+              </div>
+              {feePreview.conversionFee > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-blue-700">Conversion Fee:</span>
+                  <span className="font-medium text-blue-900">
+                    {feePreview.conversionFee.toFixed(4)} {formData.currency}
+                  </span>
+                </div>
+              )}
+              <div className="border-t border-blue-200 pt-2 mt-2">
+                <div className="flex justify-between font-semibold">
+                  <span className="text-blue-900">Total Buyer Fees:</span>
+                  <span className="text-blue-900">
+                    {feePreview.totalBuyerFees.toFixed(4)} {formData.currency}
+                  </span>
+                </div>
+              </div>
+              <div className="border-t border-blue-300 pt-2 mt-2">
+                <div className="flex justify-between font-bold text-lg">
+                  <span className="text-blue-900">Total Amount You Pay:</span>
+                  <span className="text-blue-900">
+                    {feePreview.totalAmount.toFixed(2)} {formData.currency}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+              <strong>Note:</strong> This shows only the buyer fees you need to pay (UEX buyer fee + Management buyer fee + Conversion fee). Seller fees are handled separately.
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -313,6 +471,22 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
           <p className="text-sm text-yellow-700">{pollingError}</p>
         </div>
+      )}
+
+      {/* Fee Approval Modal */}
+      {pendingPayment && (
+        <FeeApprovalModal
+          isOpen={showFeeApproval}
+          onClose={() => setShowFeeApproval(false)}
+          onApprove={handleFeeApproval}
+          onReject={handleFeeRejection}
+          amount={pendingPayment.amount}
+          currency={pendingPayment.currency}
+          targetCurrency={pendingPayment.target_currency}
+          fees={pendingPayment.fees}
+          totalAmount={pendingPayment.total_amount}
+          exchangeRate={pendingPayment.conversion_rate}
+        />
       )}
     </div>
   );

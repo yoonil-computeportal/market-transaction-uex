@@ -158,7 +158,7 @@ const PaymentWorkflow: React.FC = () => {
                     {payment.client_id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(payment.amount, payment.currency)}
+                    {formatCurrency(payment.total_amount, payment.currency)}
                     {payment.currency !== payment.target_currency && (
                       <span className="text-xs text-gray-500 ml-1">
                         → {payment.target_currency}

@@ -6,8 +6,15 @@ interface UEXTransaction {
   client_id: string;
   amount: number;
   currency: string;
+  target_currency: string;
   status: string;
   created_at: string;
+  uex_buyer_fee?: number;
+  uex_seller_fee?: number;
+  conversion_fee?: number;
+  management_fee?: number;
+  total_amount: number;
+  conversion_rate?: number;
 }
 
 interface ManagementTransaction {
@@ -73,9 +80,11 @@ const App: React.FC = () => {
       
       console.log(`  🎉 Transaction ${transactionId} completed successfully!`);
       
-      // Refresh the transaction list
+      // Refresh the transaction list by refetching data
       setTimeout(() => {
-        window.location.reload();
+        // Trigger a manual refresh of the transaction data
+        const event = new CustomEvent('refreshTransactions');
+        window.dispatchEvent(event);
       }, 1000);
       
     } catch (error) {
@@ -117,9 +126,11 @@ const App: React.FC = () => {
       
       console.log(`  🎉 Transaction ${transactionId} completed successfully!`);
       
-      // Refresh the transaction list
+      // Refresh the transaction list by refetching data
       setTimeout(() => {
-        window.location.reload();
+        // Trigger a manual refresh of the transaction data
+        const event = new CustomEvent('refreshTransactions');
+        window.dispatchEvent(event);
       }, 1000);
       
     } catch (error) {
@@ -182,8 +193,15 @@ const App: React.FC = () => {
             client_id: tx.client_id,
             amount: tx.amount,
             currency: tx.currency,
+            target_currency: tx.target_currency,
             status: tx.status,
             created_at: tx.created_at,
+            uex_buyer_fee: tx.uex_buyer_fee,
+            uex_seller_fee: tx.uex_seller_fee,
+            conversion_fee: tx.conversion_fee,
+            management_fee: tx.management_fee,
+            total_amount: tx.total_amount,
+            conversion_rate: tx.conversion_rate,
           }));
           setUexTxs(txs);
         } else {
@@ -196,9 +214,23 @@ const App: React.FC = () => {
         setLoading(false);
       }
     };
+    
+    // Initial fetch
     fetchUexTxs();
+    
+    // Set up polling interval
     interval = setInterval(fetchUexTxs, 5000);
-    return () => clearInterval(interval);
+    
+    // Add event listener for manual refresh
+    const handleRefresh = () => {
+      fetchUexTxs();
+    };
+    window.addEventListener('refreshTransactions', handleRefresh);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('refreshTransactions', handleRefresh);
+    };
   }, []);
 
   // Poll management-tier transactions
@@ -340,6 +372,9 @@ const App: React.FC = () => {
                     <th>Transaction ID</th>
                     <th>Client</th>
                     <th>Amount</th>
+                    <th>Fees</th>
+                    <th>Total</th>
+                    <th>Conversion</th>
                     <th>Status</th>
                     <th>Created</th>
                     <th>Actions</th>
@@ -355,6 +390,58 @@ const App: React.FC = () => {
                         <td className="amount">
                           <span className="currency-symbol">$</span>
                           {tx.amount.toFixed(2)}
+                        </td>
+                        <td className="fees">
+                          <div className="fee-breakdown">
+                            {tx.uex_buyer_fee && tx.uex_buyer_fee > 0 && (
+                              <div className="fee-item">
+                                <span className="fee-label">Buyer:</span>
+                                <span className="fee-amount">${tx.uex_buyer_fee.toFixed(4)}</span>
+                              </div>
+                            )}
+                            {tx.uex_seller_fee && tx.uex_seller_fee > 0 && (
+                              <div className="fee-item">
+                                <span className="fee-label">Seller:</span>
+                                <span className="fee-amount">${tx.uex_seller_fee.toFixed(4)}</span>
+                              </div>
+                            )}
+                            {tx.conversion_fee && tx.conversion_fee > 0 && (
+                              <div className="fee-item">
+                                <span className="fee-label">Conv:</span>
+                                <span className="fee-amount">${tx.conversion_fee.toFixed(4)}</span>
+                              </div>
+                            )}
+                            {tx.management_fee && tx.management_fee > 0 && (
+                              <>
+                                <div className="fee-item">
+                                  <span className="fee-label">Mgmt Buyer:</span>
+                                  <span className="fee-amount">${(tx.management_fee * 0.5).toFixed(4)}</span>
+                                </div>
+                                <div className="fee-item">
+                                  <span className="fee-label">Mgmt Seller:</span>
+                                  <span className="fee-amount">${(tx.management_fee * 0.5).toFixed(4)}</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="total-amount">
+                          <span className="currency-symbol">$</span>
+                          {tx.total_amount.toFixed(2)}
+                        </td>
+                        <td className="conversion">
+                          {tx.currency !== tx.target_currency && tx.conversion_rate ? (
+                            <div className="conversion-info">
+                              <div className="conversion-rate">
+                                1 {tx.currency} = {tx.conversion_rate.toFixed(4)} {tx.target_currency}
+                              </div>
+                              <div className="conversion-pair">
+                                {tx.currency} → {tx.target_currency}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="no-conversion">No conversion</span>
+                          )}
                         </td>
                         <td>
                           <span 

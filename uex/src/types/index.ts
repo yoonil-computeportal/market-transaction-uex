@@ -6,6 +6,8 @@ export interface PaymentTransaction {
   currency: string;
   target_currency: string;
   conversion_rate?: number;
+  uex_buyer_fee?: number;
+  uex_seller_fee?: number;
   conversion_fee?: number;
   management_fee?: number;
   total_amount: number;
@@ -88,6 +90,8 @@ export interface PaymentResponse {
   target_currency: string;
   conversion_rate?: number;
   fees: {
+    uex_buyer_fee?: number;
+    uex_seller_fee?: number;
     conversion_fee?: number;
     management_fee?: number;
     total_fee: number;
@@ -118,6 +122,8 @@ export interface CurrencyPair {
 }
 
 export interface FeeStructure {
+  uex_buyer_fee_percentage: number;
+  uex_seller_fee_percentage: number;
   conversion_fee_percentage: number;
   management_fee_percentage: number;
   minimum_fee: number;
