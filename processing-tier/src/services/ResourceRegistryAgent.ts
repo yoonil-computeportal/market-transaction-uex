@@ -146,7 +146,7 @@ export class ResourceRegistryAgent {
   private async updateResourceUtilization(resourceId: string, utilization: number): Promise<void> {
     // Update resource utilization in local database
     await this.db.query(
-      'UPDATE resources SET utilization = $1, updated_at = NOW() WHERE id = $2',
+      'UPDATE resources SET utilization = ?, updated_at = datetime(\'now\') WHERE id = ?',
       [utilization, resourceId]
     )
   }
@@ -167,7 +167,7 @@ export class ResourceRegistryAgent {
       WHERE synced = false 
       ORDER BY created_at ASC
     `)
-    return result.rows
+    return result[0] || []
   }
 
   private async sendChangesToCentralRegistry(changes: any[]): Promise<void> {
@@ -178,10 +178,12 @@ export class ResourceRegistryAgent {
 
   private async markChangesAsSynced(changes: any[]): Promise<void> {
     const changeIds = changes.map(change => change.id)
-    await this.db.query(
-      'UPDATE resource_changes SET synced = true WHERE id = ANY($1)',
-      [changeIds]
-    )
+    for (const changeId of changeIds) {
+      await this.db.query(
+        'UPDATE resource_changes SET synced = true WHERE id = ?',
+        [changeId]
+      )
+    }
   }
 
   private async getCentralRegistryUpdates(): Promise<any[]> {
@@ -194,7 +196,7 @@ export class ResourceRegistryAgent {
     // Apply updates from central registry to local database
     for (const update of updates) {
       await this.db.query(
-        'UPDATE resources SET data = $1, updated_at = NOW() WHERE id = $2',
+        'UPDATE resources SET data = ?, updated_at = datetime(\'now\') WHERE id = ?',
         [JSON.stringify(update), update.id]
       )
     }
@@ -243,40 +245,37 @@ export class ResourceRegistryAgent {
 
   private async addResourceToRegistry(resource: Resource): Promise<void> {
     await this.db.query(`
-      INSERT INTO resources (id, data, created_at, updated_at)
-      VALUES ($1, $2, NOW(), NOW())
-      ON CONFLICT (id) DO UPDATE SET
-        data = $2,
-        updated_at = NOW()
+      INSERT OR REPLACE INTO resources (id, data, created_at, updated_at)
+      VALUES (?, ?, datetime('now'), datetime('now'))
     `, [resource.id, JSON.stringify(resource)])
   }
 
   private async markResourceForSync(resourceId: string): Promise<void> {
     await this.db.query(`
       INSERT INTO resource_changes (resource_id, change_type, synced, created_at)
-      VALUES ($1, 'advertise', false, NOW())
+      VALUES (?, 'advertise', false, datetime('now'))
     `, [resourceId])
   }
 
   private async getResourceById(resourceId: string): Promise<Resource | null> {
     const result = await this.db.query(
-      'SELECT data FROM resources WHERE id = $1',
+      'SELECT data FROM resources WHERE id = ?',
       [resourceId]
     )
     
-    if (result.rows.length === 0) {
+    if (result[0].length === 0) {
       return null
     }
     
-    return result.rows[0].data as Resource
+    return result[0][0].data as Resource
   }
 
   private async reserveResource(resourceId: string, quantity: number): Promise<void> {
     await this.db.query(`
       UPDATE resources 
-      SET availability = availability - $1,
-          updated_at = NOW()
-      WHERE id = $2
+      SET availability = availability - ?,
+          updated_at = datetime('now')
+      WHERE id = ?
     `, [quantity, resourceId])
   }
 } 

@@ -9,7 +9,7 @@ router.get('/user', async (req, res) => {
   try {
     const { page = 1, limit = 20, status } = req.query
     const userId = req.query['userId'] || 'user-1'
-
+    
     logger.info(`Fetching transactions for user: ${userId}`)
 
     // Fetch real transactions from UEX backend
@@ -19,19 +19,19 @@ router.get('/user', async (req, res) => {
     
     let filteredTransactions = allTransactions.filter(t => t.client_id === userId)
     logger.info(`Filtered to ${filteredTransactions.length} transactions for user ${userId}`)
-
+    
     if (status) {
       filteredTransactions = filteredTransactions.filter(t => t.status === status)
       logger.info(`Further filtered to ${filteredTransactions.length} transactions with status ${status}`)
     }
-
+    
     // Apply pagination
     const startIndex = (Number(page) - 1) * Number(limit)
     const endIndex = startIndex + Number(limit)
     const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex)
 
     logger.info(`Returning ${paginatedTransactions.length} transactions for page ${page}`)
-
+    
     return res.json({
       data: paginatedTransactions,
       pagination: {

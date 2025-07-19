@@ -118,13 +118,8 @@ export class MarketplaceOrchestrationService {
       
       // Store cluster information
       await this.db.query(`
-        INSERT INTO clusters (id, name, endpoint, region, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, NOW(), NOW())
-        ON CONFLICT (id) DO UPDATE SET
-          name = $2,
-          endpoint = $3,
-          region = $4,
-          updated_at = NOW()
+        INSERT OR REPLACE INTO clusters (id, name, endpoint, region, created_at, updated_at)
+        VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
       `, [clusterId, clusterData.name, clusterData.endpoint, clusterData.region])
       
       // Add to local registry
@@ -150,8 +145,8 @@ export class MarketplaceOrchestrationService {
       // Update heartbeat in database
       await this.db.query(`
         UPDATE clusters 
-        SET last_heartbeat = NOW(), updated_at = NOW()
-        WHERE id = $1
+        SET last_heartbeat = datetime('now'), updated_at = datetime('now')
+        WHERE id = ?
       `, [clusterId])
     }
   }
@@ -191,14 +186,14 @@ export class MarketplaceOrchestrationService {
       WHERE status != 'deleted'
       ORDER BY created_at ASC
     `)
-    return result.rows
+    return result[0] || []
   }
 
   private async updateClusterStatus(clusterId: string, status: string): Promise<void> {
     await this.db.query(`
       UPDATE clusters 
-      SET status = $1, updated_at = NOW()
-      WHERE id = $2
+      SET status = ?, updated_at = datetime('now')
+      WHERE id = ?
     `, [status, clusterId])
   }
 
@@ -224,7 +219,7 @@ export class MarketplaceOrchestrationService {
       WHERE synced = false 
       ORDER BY created_at ASC
     `)
-    return result.rows
+    return result[0] || []
   }
 
   private async resolveStateConflicts(changes: any[]): Promise<any[]> {
@@ -237,8 +232,8 @@ export class MarketplaceOrchestrationService {
     for (const change of changes) {
       await this.db.query(`
         UPDATE global_state 
-        SET data = $1, updated_at = NOW()
-        WHERE key = $2
+        SET data = ?, updated_at = datetime('now')
+        WHERE key = ?
       `, [JSON.stringify(change.data), change.key])
     }
   }
@@ -286,12 +281,12 @@ export class MarketplaceOrchestrationService {
     // Find a suitable backup cluster
     const result = await this.db.query(`
       SELECT * FROM clusters 
-      WHERE id != $1 AND status = 'active'
+      WHERE id != ? AND status = 'active'
       ORDER BY created_at ASC
       LIMIT 1
     `, [failedClusterId])
     
-    return result.rows[0] || null
+    return (result[0] && result[0][0]) || null
   }
 
   private async transferWorkload(fromClusterId: string, toClusterId: string): Promise<void> {

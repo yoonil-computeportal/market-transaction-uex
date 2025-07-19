@@ -130,7 +130,7 @@ export const TransactionHistory: React.FC = () => {
                   </span>
                 </div>
               </div>
-
+              
             </div>
           ))}
         </div>

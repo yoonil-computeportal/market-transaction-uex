@@ -90,6 +90,50 @@ const App: React.FC = () => {
     }
   };
 
+  // Function to complete a transaction that's already processing
+  const completeTransaction = async (transactionId: string) => {
+    if (processingTxs.has(transactionId)) return;
+    
+    setProcessingTxs(prev => new Set(prev).add(transactionId));
+    
+    try {
+      console.log(`✅ Completing transaction ${transactionId}...`);
+      
+      // Update to completed
+      console.log('  ✅ Updating status to "completed"...');
+      await fetch(`${UEX_API}/transaction/${transactionId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'completed',
+          metadata: {
+            completed_at: new Date().toISOString(),
+            processor: 'uex-dashboard-admin',
+            settlement_reference: `SETTLE-${Date.now()}`,
+            transaction_hash: `0x${Math.random().toString(16).substr(2, 64)}`
+          }
+        })
+      });
+      
+      console.log(`  🎉 Transaction ${transactionId} completed successfully!`);
+      
+      // Refresh the transaction list
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
+    } catch (error) {
+      console.error(`❌ Failed to complete transaction ${transactionId}:`, error);
+      alert(`Failed to complete transaction ${transactionId}: ${error}`);
+    } finally {
+      setProcessingTxs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(transactionId);
+        return newSet;
+      });
+    }
+  };
+
   // Get status color and icon
   const getStatusInfo = (status: string) => {
     switch (status.toLowerCase()) {
@@ -339,6 +383,22 @@ const App: React.FC = () => {
                                 </>
                               ) : (
                                 'Process'
+                              )}
+                            </button>
+                          )}
+                          {tx.status === 'processing' && (
+                            <button
+                              onClick={() => completeTransaction(tx.transaction_id)}
+                              disabled={processingTxs.has(tx.transaction_id)}
+                              className={`complete-button ${processingTxs.has(tx.transaction_id) ? 'processing' : ''}`}
+                            >
+                              {processingTxs.has(tx.transaction_id) ? (
+                                <>
+                                  <span className="button-spinner"></span>
+                                  Completing...
+                                </>
+                              ) : (
+                                'Complete'
                               )}
                             </button>
                           )}

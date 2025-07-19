@@ -107,18 +107,18 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
             if (status !== lastStatus) {
               // Update management-tier when status changes
               try {
-                await fetch('http://localhost:9000/api/management/integration/transactions/update', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    transactionId,
-                    orderId: order.id,
-                    userId,
-                    status,
-                    amount: paymentResponse.amount,
-                    fees: paymentResponse.fees?.total_fee ?? 0,
-                  }),
-                });
+              await fetch('http://localhost:9000/api/management/integration/transactions/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  transactionId,
+                  orderId: order.id,
+                  userId,
+                  status,
+                  amount: paymentResponse.amount,
+                  fees: paymentResponse.fees?.total_fee ?? 0,
+                }),
+              });
               } catch (updateErr) {
                 console.warn('Failed to update management-tier:', updateErr);
               }

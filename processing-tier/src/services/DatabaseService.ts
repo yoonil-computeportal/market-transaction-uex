@@ -1,32 +1,40 @@
-import { Pool, PoolClient, QueryResult } from 'pg'
+import knex, { Knex } from 'knex'
 import { logger } from '../utils/logger'
 
 export class DatabaseService {
-  private pool: Pool
+  private db: Knex
 
   constructor() {
-    this.pool = new Pool({
-      host: process.env['DB_HOST'] || 'localhost',
-      port: parseInt(process.env['DB_PORT'] || '5432'),
-      database: process.env['DB_NAME'] || 'marketplace_processing',
-      user: process.env['DB_USER'] || 'postgres',
-      password: process.env['DB_PASSWORD'] || 'password',
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+    this.db = knex({
+      client: 'sqlite3',
+      connection: {
+        filename: process.env['DATABASE_URL'] || './processing_tier.sqlite3'
+      },
+      useNullAsDefault: true,
+      migrations: {
+        directory: './src/database/migrations'
+      },
+      seeds: {
+        directory: './src/database/seeds'
+      }
     })
 
-    this.pool.on('error', (err) => {
-      logger.error('Unexpected error on idle client', err)
-    })
+    // Test the connection
+    this.db.raw('SELECT 1')
+      .then(() => {
+        logger.info('Database connection established')
+      })
+      .catch((err) => {
+        logger.error('Database connection error', err)
+      })
   }
 
-  async query(text: string, params?: any[]): Promise<QueryResult> {
+  async query(text: string, params?: any[]): Promise<any> {
     const start = Date.now()
     try {
-      const result = await this.pool.query(text, params)
+      const result = await this.db.raw(text, params || [])
       const duration = Date.now() - start
-      logger.debug('Executed query', { text, duration, rows: result.rowCount })
+      logger.debug('Executed query', { text, duration, rows: result.length })
       return result
     } catch (error) {
       logger.error('Database query error', { text, params, error })
@@ -34,26 +42,20 @@ export class DatabaseService {
     }
   }
 
-  async getClient(): Promise<PoolClient> {
-    return this.pool.connect()
+  async getClient(): Promise<Knex> {
+    return this.db
   }
 
-  async transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
-    const client = await this.getClient()
-    try {
-      await client.query('BEGIN')
-      const result = await callback(client)
-      await client.query('COMMIT')
-      return result
-    } catch (error) {
-      await client.query('ROLLBACK')
-      throw error
-    } finally {
-      client.release()
-    }
+  async transaction<T>(callback: (trx: Knex.Transaction) => Promise<T>): Promise<T> {
+    return this.db.transaction(callback)
   }
 
   async close(): Promise<void> {
-    await this.pool.end()
+    await this.db.destroy()
+  }
+
+  // Helper method to get the knex instance
+  getKnex(): Knex {
+    return this.db
   }
 } 
