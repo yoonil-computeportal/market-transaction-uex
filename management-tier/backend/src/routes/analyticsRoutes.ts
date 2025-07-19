@@ -15,9 +15,9 @@ router.get('/marketplace', (req, res) => {
       activeUsers: 450,
       resourceUtilization: 68,
       topResources: [
-        { name: 'High-Performance CPU', transactions: 150 },
-        { name: 'NVIDIA RTX 4090', transactions: 120 },
-        { name: 'Storage Cluster', transactions: 95 }
+        { name: 'High-Performance CPU Cluster', transactions: 150 },
+        { name: 'NVIDIA RTX 4090 GPU', transactions: 120 },
+        { name: 'Enterprise NVMe Storage Cluster', transactions: 95 }
       ],
       revenueByPeriod: [
         { period: '2024-01', revenue: 4500.25, transactions: 450 },

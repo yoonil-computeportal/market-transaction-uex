@@ -16,11 +16,30 @@ const paymentController = new PaymentController(paymentService);
 router.post('/process', (req, res) => paymentController.processPayment(req, res));
 
 // Transaction management routes
+router.get('/transactions', (req, res) => paymentController.getAllTransactions(req, res));
 router.get('/transaction/:transactionId/status', (req, res) => paymentController.getTransactionStatus(req, res));
 router.put('/transaction/:transactionId/status', (req, res) => paymentController.updateTransactionStatus(req, res));
 router.get('/transaction/:transactionId/fees', (req, res) => paymentController.getTransactionFees(req, res));
 router.get('/transaction/:transactionId/conversions', (req, res) => paymentController.getTransactionConversions(req, res));
-router.get('/transactions', (req, res) => paymentController.getAllTransactions(req, res));
+
+// Batch notification route for completed transactions
+router.post('/notify-completed', async (req, res) => {
+  try {
+    const results = await paymentService.notifyAllCompletedTransactions();
+    res.status(200).json({
+      success: true,
+      message: 'Batch notification completed',
+      results
+    });
+  } catch (error) {
+    console.error('Batch notification failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Batch notification failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
 
 // Health check route
 router.get('/health', (_req, res) => {
@@ -38,6 +57,7 @@ router.get('/', (_req, res) => {
     version: '1.0.0',
     endpoints: {
       'POST /api/payments/process': 'Process a new payment transaction',
+      'GET /api/payments/transactions': 'Get all transactions',
       'GET /api/payments/transaction/:id/status': 'Get transaction status',
       'PUT /api/payments/transaction/:id/status': 'Update transaction status',
       'GET /api/payments/transaction/:id/fees': 'Get transaction fees',

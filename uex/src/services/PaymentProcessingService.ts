@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
 import { DatabaseService } from './DatabaseService';
 import { ExchangeRateService } from './ExchangeRateService';
 import { 
@@ -246,6 +247,14 @@ export class PaymentProcessingService {
     
     if (status === 'completed') {
       updates.completed_at = new Date();
+      
+      // Notify seller when transaction is completed
+      try {
+        await this.notifySellerOfTransactionCompletion(transactionId);
+      } catch (error) {
+        console.error(`Failed to notify seller for transaction ${transactionId}:`, error);
+        // Don't fail the transaction update if notification fails
+      }
     } else if (status === 'failed' && metadata?.failure_reason) {
       updates.failure_reason = metadata.failure_reason;
     }
@@ -260,6 +269,60 @@ export class PaymentProcessingService {
     return await this.dbService.updatePaymentTransaction(transactionId, updates);
   }
 
+  private async notifySellerOfTransactionCompletion(transactionId: string): Promise<void> {
+    try {
+      // Get the transaction details
+      const transaction = await this.dbService.getPaymentTransaction(transactionId);
+      if (!transaction) {
+        throw new Error(`Transaction ${transactionId} not found`);
+      }
+
+      // Determine seller notification URL based on seller_id
+      let sellerNotificationUrl: string;
+      switch (transaction.seller_id.toLowerCase()) {
+        case 'cloud provider b':
+        case 'cloud-provider-b':
+          sellerNotificationUrl = 'http://localhost:3004/api/payouts/transaction-completed';
+          break;
+        case 'cloud provider a':
+        case 'cloud-provider-a':
+          // Add Cloud Provider A notification URL when available
+          console.warn(`Cloud Provider A notification URL not configured yet`);
+          return;
+        default:
+          console.warn(`No notification URL configured for seller: ${transaction.seller_id}`);
+          return;
+      }
+
+      // Prepare notification payload
+      const notificationPayload = {
+        transaction_id: transaction.id,
+        seller_id: transaction.seller_id,
+        item_id: 'rtx-4090-gpu', // NVIDIA RTX 4090 GPU item ID
+        item_name: 'NVIDIA RTX 4090 GPU', // Proper item name
+        original_amount: transaction.amount,
+        currency: transaction.currency,
+        payment_method: transaction.payment_method,
+        client_id: transaction.client_id,
+        order_id: `order-${transaction.id}` // Default order ID
+      };
+
+      // Send notification to seller
+      const response = await axios.post(sellerNotificationUrl, notificationPayload, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 second timeout
+      });
+
+      console.log(`✅ Successfully notified seller for transaction ${transactionId}:`, response.data);
+      
+    } catch (error) {
+      console.error(`❌ Failed to notify seller for transaction ${transactionId}:`, error);
+      throw error;
+    }
+  }
+
   async getTransactionFees(transactionId: string): Promise<ManagementTierFee[]> {
     return await this.dbService.getManagementTierFeesByTransaction(transactionId);
   }
@@ -270,5 +333,47 @@ export class PaymentProcessingService {
 
   async getAllTransactions(): Promise<PaymentTransaction[]> {
     return this.dbService.getAllPaymentTransactions();
+  }
+
+  // New method to notify all existing completed transactions
+  async notifyAllCompletedTransactions(): Promise<{ success: number; failed: number; errors: string[] }> {
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[]
+    };
+
+    try {
+      const allTransactions = await this.getAllTransactions();
+      const completedTransactions = allTransactions.filter(t => t.status === 'completed');
+
+      console.log(`Found ${completedTransactions.length} completed transactions to notify`);
+
+      for (const transaction of completedTransactions) {
+        try {
+          await this.notifySellerOfTransactionCompletion(transaction.id);
+          results.success++;
+          console.log(`✅ Successfully notified seller for transaction ${transaction.id}`);
+        } catch (error) {
+          results.failed++;
+          const errorMsg = `Failed to notify for transaction ${transaction.id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          results.errors.push(errorMsg);
+          console.error(`❌ ${errorMsg}`);
+        }
+      }
+
+      console.log(`📊 Notification Summary: ${results.success} successful, ${results.failed} failed`);
+      return results;
+    } catch (error) {
+      console.error('Failed to process batch notifications:', error);
+      throw error;
+    }
+  }
+
+  // New method to check if a transaction has been notified
+  private async isTransactionNotified(transactionId: string): Promise<boolean> {
+    // This is a simple implementation - in production, you'd want to track this in the database
+    // For now, we'll assume all transactions need notification
+    return false;
   }
 } 
