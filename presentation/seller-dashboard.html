@@ -492,7 +492,7 @@
             
             try {
                 // Fetch latest transactions from the API
-                const response = await fetch('http://localhost:3004/api/transactions');
+                const response = await fetch('http://localhost:3903/api/payments/transactions');
                 const data = await response.json();
                 
                 if (data.success && data.data) {

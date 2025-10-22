@@ -29,7 +29,7 @@ interface PaymentTransaction {
 }
 
 export class PaymentController {
-  private uexBaseUrl = process.env['UEX_BASE_URL'] || 'http://localhost:3001/api';
+  private uexBaseUrl = process.env['UEX_BASE_URL'] || 'http://localhost:3903/api';
   private db = new DatabaseService();
 
   private mapUexStatusToPaymentStatus(uexStatus: string): 'initiated' | 'processing' | 'settled' | 'failed' {

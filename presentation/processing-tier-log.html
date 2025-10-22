@@ -568,7 +568,7 @@
 
             async loadLogs() {
                 try {
-                    const response = await fetch('../processing-tier/logs/combined.log');
+                    const response = await fetch('/processing-tier/logs/combined.log');
                     const text = await response.text();
                     this.parseLogs(text);
                     this.updateStats();
@@ -582,10 +582,10 @@
                             <p style="margin-top: 1rem; font-size: 0.9rem; color: #6b7280;">
                                 <strong>Solution:</strong> Run a local server from the project root:<br>
                                 <code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;">
-                                    python3 -m http.server 8080
+                                    python3 -m http.server 3900
                                 </code><br>
                                 Then visit: <code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;">
-                                    http://localhost:8080/presentation/processing-tier-log.html
+                                    http://localhost:3900/presentation/processing-tier-log.html
                                 </code>
                             </p>
                         </div>

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import axios from 'axios';
 
 // UEX Backend API Configuration
-const UEX_API_BASE_URL = process.env['UEX_API_URL'] || 'http://localhost:3001/api';
+const UEX_API_BASE_URL = process.env['UEX_API_URL'] || 'http://localhost:3903/api';
 
 // Create axios instance for UEX API
 const uexApi = axios.create({
