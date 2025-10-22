@@ -25,8 +25,8 @@ interface ManagementTransaction {
   updated_at: string;
 }
 
-const UEX_API = 'http://localhost:3001/api/payments';
-const MGMT_API = 'http://localhost:3002/api/payments';
+const UEX_API = 'http://localhost:3903/api/payments';
+const MGMT_API = 'http://localhost:9000/api/payments';
 
 const App: React.FC = () => {
   const [uexTxs, setUexTxs] = useState<UEXTransaction[]>([]);

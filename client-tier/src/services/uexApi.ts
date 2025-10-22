@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // UEX Backend API Configuration
-const UEX_API_BASE_URL = (import.meta as any).env?.VITE_UEX_API_URL || 'http://localhost:3001/api';
+const UEX_API_BASE_URL = (import.meta as any).env?.VITE_UEX_API_URL || 'http://localhost:3903/api';
 
 // Create axios instance for UEX API
 const uexApi = axios.create({
