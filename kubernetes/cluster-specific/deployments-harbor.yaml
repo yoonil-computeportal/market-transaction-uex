@@ -32,7 +32,7 @@ spec:
           image: repository.computeportal.app/uex-payments/presentation:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 80
+            - containerPort: 3900
           resources:
             requests:
               memory: "128Mi"
@@ -42,14 +42,14 @@ spec:
               cpu: "200m"
           livenessProbe:
             httpGet:
-              path: /
-              port: 80
+              path: /health
+              port: 3900
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /
-              port: 80
+              path: /health
+              port: 3900
             initialDelaySeconds: 5
             periodSeconds: 5
 
@@ -81,7 +81,7 @@ spec:
           image: repository.computeportal.app/uex-payments/client-tier:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 80
+            - containerPort: 3901
           resources:
             requests:
               memory: "256Mi"
@@ -91,14 +91,14 @@ spec:
               cpu: "300m"
           livenessProbe:
             httpGet:
-              path: /
-              port: 80
+              path: /health
+              port: 3901
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /
-              port: 80
+              path: /health
+              port: 3901
             initialDelaySeconds: 5
             periodSeconds: 5
 
@@ -130,7 +130,7 @@ spec:
           image: repository.computeportal.app/uex-payments/management-frontend:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 80
+            - containerPort: 3902
           resources:
             requests:
               memory: "256Mi"
@@ -140,14 +140,14 @@ spec:
               cpu: "300m"
           livenessProbe:
             httpGet:
-              path: /
-              port: 80
+              path: /health
+              port: 3902
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /
-              port: 80
+              path: /health
+              port: 3902
             initialDelaySeconds: 5
             periodSeconds: 5
 
@@ -301,6 +301,18 @@ spec:
     spec:
       imagePullSecrets:
         - name: harbor-registry-secret
+      initContainers:
+        - name: run-migrations
+          image: repository.computeportal.app/uex-payments/management-backend:latest
+          command: ['sh', '-c', 'npx knex migrate:latest --knexfile=/app/knexfile.js']
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              value: "/app/data/management_tier.sqlite3"
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
       containers:
         - name: management-backend
           image: repository.computeportal.app/uex-payments/management-backend:latest
@@ -313,10 +325,10 @@ spec:
             - name: NODE_ENV
               value: "production"
             - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: uex-secrets
-                  key: database-url
+              value: "/app/data/management_tier.sqlite3"
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
           resources:
             requests:
               memory: "512Mi"
@@ -336,3 +348,6 @@ spec:
               port: 9000
             initialDelaySeconds: 10
             periodSeconds: 5
+      volumes:
+        - name: data
+          emptyDir: {}

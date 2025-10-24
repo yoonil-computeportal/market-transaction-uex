@@ -83,6 +83,7 @@ spec:
     - metadata:
         name: redis-storage
       spec:
+        storageClassName: manual
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
