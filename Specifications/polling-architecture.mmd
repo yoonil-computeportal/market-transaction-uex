@@ -1,0 +1,97 @@
+flowchart TB
+    subgraph UEXPollingService["UEXPollingService - Background Worker"]
+        TIMER["Timer Trigger
+        Every 5 Minutes"]
+
+        TIMER --> START["Start Polling Cycle"]
+
+        START --> QUERY_PENDING["Database Query:
+        SELECT * FROM payment_transactions
+        WHERE status IN (pending, processing)
+        AND uex_order_id IS NOT NULL
+        AND created_at > NOW() - INTERVAL 7 days"]
+
+        QUERY_PENDING --> CHECK_RESULTS{"Pending
+        Orders?"}
+
+        CHECK_RESULTS -->|"None"| LOG_NONE["Log: No pending orders"]
+        CHECK_RESULTS -->|"Found"| ITERATE
+
+        LOG_NONE --> WAIT["Wait 5 Minutes"]
+
+        ITERATE["For Each Order:
+        Process Sequentially"]
+
+        ITERATE --> GET_STATUS["UEXService:
+        getOrderStatus
+        (uex_order_id)"]
+
+        GET_STATUS --> API_CALL["UEX API Call:
+        POST /api/partners/order-show"]
+
+        API_CALL --> API_SUCCESS{"API Call
+        Success?"}
+
+        API_SUCCESS -->|"Error"| LOG_ERROR["Log Error:
+        API call failed
+        Continue to next order"]
+        API_SUCCESS -->|"Success"| COMPARE
+
+        LOG_ERROR --> NEXT_ORDER{"More
+        Orders?"}
+
+        COMPARE["Compare Status:
+        UEX status vs DB status"]
+
+        COMPARE --> STATUS_CHANGED{"Status
+        Changed?"}
+
+        STATUS_CHANGED -->|"No"| LOG_UNCHANGED["Log: Status unchanged"]
+        STATUS_CHANGED -->|"Yes"| UPDATE_DB
+
+        LOG_UNCHANGED --> UPDATE_POLL_TIME
+
+        UPDATE_DB["Update Database:
+        - status
+        - uex_status
+        - updated_at
+        - completed_at if done"]
+
+        UPDATE_DB --> APPEND_HISTORY["Append to status_history"]
+
+        APPEND_HISTORY --> CHECK_COMPLETED{"Status =
+        completed?"}
+
+        CHECK_COMPLETED -->|"Yes"| NOTIFY["Notify Seller:
+        Payment Completed"]
+        CHECK_COMPLETED -->|"No"| SKIP_NOTIFY
+
+        NOTIFY --> RECORD_METRICS
+        SKIP_NOTIFY["Skip Notification"] --> RECORD_METRICS
+
+        RECORD_METRICS["Record Metrics:
+        - Poll count
+        - Status change count
+        - Processing time"]
+
+        RECORD_METRICS --> UPDATE_POLL_TIME
+
+        UPDATE_POLL_TIME["Update last_polled_at
+        in uex_order_tracking"]
+
+        UPDATE_POLL_TIME --> NEXT_ORDER
+
+        NEXT_ORDER -->|"Yes"| ITERATE
+        NEXT_ORDER -->|"No"| COMPLETE
+
+        COMPLETE["Log Polling Complete:
+        Total orders processed
+        Total updates made"]
+
+        COMPLETE --> WAIT
+        WAIT --> TIMER
+    end
+
+    style TIMER fill:#90EE90
+    style API_CALL fill:#87CEEB
+    style LOG_ERROR fill:#FFD700

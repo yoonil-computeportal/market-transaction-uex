@@ -1,0 +1,599 @@
+# ==============================================================================
+# UEX Payment Processing System - All Services
+# ==============================================================================
+# This file contains Deployments and Services for all 6 microservices
+# ==============================================================================
+
+# ==============================================================================
+# Service 1: Presentation Dashboard (Port 3900)
+# ==============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: presentation-service
+  namespace: uex-payments-dev
+  labels:
+    app: presentation
+spec:
+  type: NodePort
+  ports:
+    - port: 3900
+      targetPort: 3900
+      nodePort: 30900
+      protocol: TCP
+      name: http
+  selector:
+    app: presentation
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: presentation
+  namespace: uex-payments-dev
+  labels:
+    app: presentation
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: presentation
+  template:
+    metadata:
+      labels:
+        app: presentation
+        tier: frontend
+    spec:
+      containers:
+        - name: presentation
+          image: YOUR_REGISTRY/uex-payments-presentation:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3900
+              name: http
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3900
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3900
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+# ==============================================================================
+# Service 2: Client-Tier Frontend (Port 3901)
+# ==============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-tier-service
+  namespace: uex-payments-dev
+  labels:
+    app: client-tier
+spec:
+  type: NodePort
+  ports:
+    - port: 3901
+      targetPort: 3901
+      nodePort: 30901
+      protocol: TCP
+      name: http
+  selector:
+    app: client-tier
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-tier
+  namespace: uex-payments-dev
+  labels:
+    app: client-tier
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client-tier
+  template:
+    metadata:
+      labels:
+        app: client-tier
+        tier: frontend
+    spec:
+      containers:
+        - name: client-tier
+          image: YOUR_REGISTRY/uex-payments-client-tier:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3901
+              name: http
+          envFrom:
+            - configMapRef:
+                name: uex-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3901
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3901
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+# ==============================================================================
+# Service 3: Management-Tier Frontend (Port 3902)
+# ==============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: management-tier-service
+  namespace: uex-payments-dev
+  labels:
+    app: management-tier
+spec:
+  type: NodePort
+  ports:
+    - port: 3902
+      targetPort: 3902
+      nodePort: 30902
+      protocol: TCP
+      name: http
+  selector:
+    app: management-tier
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: management-tier
+  namespace: uex-payments-dev
+  labels:
+    app: management-tier
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: management-tier
+  template:
+    metadata:
+      labels:
+        app: management-tier
+        tier: frontend
+    spec:
+      containers:
+        - name: management-tier
+          image: YOUR_REGISTRY/uex-payments-management-tier:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3902
+              name: http
+          envFrom:
+            - configMapRef:
+                name: uex-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3902
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3902
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+# ==============================================================================
+# Service 4: UEX Backend (Port 3903) - CRITICAL SERVICE
+# ==============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: uex-backend-service
+  namespace: uex-payments-dev
+  labels:
+    app: uex-backend
+spec:
+  type: NodePort
+  ports:
+    - port: 3903
+      targetPort: 3903
+      nodePort: 30903
+      protocol: TCP
+      name: http
+  selector:
+    app: uex-backend
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uex-backend
+  namespace: uex-payments-dev
+  labels:
+    app: uex-backend
+    tier: backend
+    critical: "true"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: uex-backend
+  template:
+    metadata:
+      labels:
+        app: uex-backend
+        tier: backend
+        critical: "true"
+    spec:
+      containers:
+        - name: uex-backend
+          image: YOUR_REGISTRY/uex-payments-uex-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3903
+              name: http
+          env:
+            - name: PORT
+              value: "3903"
+            - name: DATABASE_URL
+              value: "postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)"
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@$(REDIS_HOST):$(REDIS_PORT)"
+            - name: DATABASE_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_USER
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_PORT
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_NAME
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: DATABASE_PASSWORD
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: REDIS_PORT
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: REDIS_PASSWORD
+            - name: UEX_REFERRAL_CODE
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: UEX_REFERRAL_CODE
+            - name: UEX_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: UEX_CLIENT_ID
+            - name: UEX_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: UEX_SECRET_KEY
+          envFrom:
+            - configMapRef:
+                name: uex-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /api/uex/health
+              port: 3903
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /api/uex/health
+              port: 3903
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+
+---
+# ==============================================================================
+# Service 5: Processing-Tier Backend (Port 8900)
+# ==============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: processing-tier-service
+  namespace: uex-payments-dev
+  labels:
+    app: processing-tier
+spec:
+  type: NodePort
+  ports:
+    - port: 8900
+      targetPort: 8900
+      nodePort: 30800
+      protocol: TCP
+      name: http
+  selector:
+    app: processing-tier
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: processing-tier
+  namespace: uex-payments-dev
+  labels:
+    app: processing-tier
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: processing-tier
+  template:
+    metadata:
+      labels:
+        app: processing-tier
+        tier: backend
+    spec:
+      containers:
+        - name: processing-tier
+          image: YOUR_REGISTRY/uex-payments-processing-tier:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8900
+              name: http
+          env:
+            - name: PORT
+              value: "8900"
+            - name: DATABASE_URL
+              value: "postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)"
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@$(REDIS_HOST):$(REDIS_PORT)"
+            - name: DATABASE_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_USER
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_PORT
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_NAME
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: DATABASE_PASSWORD
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: REDIS_PORT
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: REDIS_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: uex-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8900
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8900
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+---
+# ==============================================================================
+# Service 6: Management Backend (Port 9000)
+# ==============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: management-backend-service
+  namespace: uex-payments-dev
+  labels:
+    app: management-backend
+spec:
+  type: NodePort
+  ports:
+    - port: 9000
+      targetPort: 9000
+      nodePort: 30000
+      protocol: TCP
+      name: http
+  selector:
+    app: management-backend
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: management-backend
+  namespace: uex-payments-dev
+  labels:
+    app: management-backend
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: management-backend
+  template:
+    metadata:
+      labels:
+        app: management-backend
+        tier: backend
+    spec:
+      containers:
+        - name: management-backend
+          image: YOUR_REGISTRY/uex-payments-management-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9000
+              name: http
+          env:
+            - name: PORT
+              value: "9000"
+            - name: DATABASE_URL
+              value: "postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)"
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@$(REDIS_HOST):$(REDIS_PORT)"
+            - name: DATABASE_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_USER
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_PORT
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: DATABASE_NAME
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: DATABASE_PASSWORD
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: REDIS_PORT
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: REDIS_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: uex-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 10

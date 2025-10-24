@@ -1,0 +1,94 @@
+flowchart LR
+    START(["UEX Webhook Received"])
+
+    START --> WEBHOOK_POST["POST /api/uex/webhook/order-status
+    Body: {order_id, status, metadata}"]
+
+    WEBHOOK_POST --> VALIDATE_SIG{"Validate
+    Signature?"}
+
+    VALIDATE_SIG -->|"Invalid"| RETURN_400["Return 400 Bad Request"]
+    VALIDATE_SIG -->|"Valid or No Sig"| PARSE_BODY
+
+    PARSE_BODY["Parse Request Body:
+    - order_id
+    - status
+    - amounts
+    - timestamp"]
+
+    PARSE_BODY --> VALIDATE_DATA{"Data
+    Valid?"}
+
+    VALIDATE_DATA -->|"No"| RETURN_400
+    VALIDATE_DATA -->|"Yes"| FIND_TX
+
+    FIND_TX["Database:
+    Find transaction by uex_order_id"]
+
+    FIND_TX --> TX_FOUND{"Transaction
+    Found?"}
+
+    TX_FOUND -->|"No"| LOG_ERROR["Log Warning:
+    Unknown order_id"]
+    TX_FOUND -->|"Yes"| MAP_STATUS
+
+    LOG_ERROR --> RETURN_404["Return 404 Not Found"]
+
+    MAP_STATUS["Map UEX Status to System Status:
+    - Awaiting Deposit → pending
+    - Confirming Deposit → processing
+    - Exchanging → processing
+    - Sending → processing
+    - Complete → completed
+    - Failed → failed
+    - Refund → cancelled"]
+
+    MAP_STATUS --> CHECK_CHANGE{"Status
+    Changed?"}
+
+    CHECK_CHANGE -->|"No Change"| LOG_DUPLICATE["Log: Duplicate webhook"]
+    CHECK_CHANGE -->|"Changed"| UPDATE_TX
+
+    LOG_DUPLICATE --> RETURN_200A["Return 200 OK"]
+
+    UPDATE_TX["Update Transaction:
+    - status
+    - uex_status
+    - uex_webhook_data (JSON)
+    - updated_at
+    - completed_at if completed"]
+
+    UPDATE_TX --> APPEND_HISTORY["Append to status_history:
+    {status, timestamp}"]
+
+    APPEND_HISTORY --> TX_COMPLETED{"Status =
+    completed?"}
+
+    TX_COMPLETED -->|"Yes"| NOTIFY_SELLER["Notify Seller:
+    Payment Received"]
+    TX_COMPLETED -->|"No"| SKIP_NOTIFY
+
+    NOTIFY_SELLER --> UPDATE_METRICS
+    SKIP_NOTIFY["Skip Notification"] --> UPDATE_METRICS
+
+    UPDATE_METRICS["Update Metrics:
+    - Transaction counts
+    - Completion times
+    - Success rates"]
+
+    UPDATE_METRICS --> LOG_SUCCESS["Log Webhook Processing:
+    Success"]
+
+    LOG_SUCCESS --> RETURN_200["Return 200 OK"]
+
+    RETURN_400 --> END(["End"])
+    RETURN_404 --> END
+    RETURN_200A --> END
+    RETURN_200 --> END
+
+    style START fill:#90EE90
+    style END fill:#FFB6C1
+    style RETURN_400 fill:#FF6B6B
+    style RETURN_404 fill:#FF6B6B
+    style RETURN_200 fill:#90EE90
+    style RETURN_200A fill:#90EE90

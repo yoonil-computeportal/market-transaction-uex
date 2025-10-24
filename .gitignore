@@ -86,6 +86,12 @@ jspm_packages/
 *.swo
 *~
 
+# Claude Code
+.claude/
+
+# Credentials
+credentials/
+
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -102,3 +108,34 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Docker
+*.dockerignore
+
+# Kubernetes secrets (keep templates)
+kubernetes/base/secrets.yaml
+!kubernetes/base/secrets.yaml.template
+
+# Test cluster sensitive info
+TEST-KUBERNETES-CLUSTER/server-info/*
+
+# Harbor registry credentials
+.harbor-credentials
+
+# Build logs
+*.build.log
+/tmp/*.log
+
+# Development state snapshots
+dev-states/
+
+# Documentation (project-specific - uncomment if needed)
+# *.md
+# !README.md
+
+# SQLite databases
+*.sqlite3
+*.db
+*.db-journal
+*.db-shm
+*.db-wal

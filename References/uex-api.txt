@@ -1,0 +1,65 @@
+https://uex-us.stoplight.io/docs/uex/4qv65b3k0kxfm-uex-api-v1-0
+
+
+Stoplight logo
+
+Like what you see? Create your own free Stoplight workspace to start documenting and designing APIs today.
+
+Create a Workspace
+
+UEX API v1.0
+Export
+
+v1.0.0
+Contact support@uex.us
+UEX API Integration Guide
+
+UEX provides a secure, all-in-one cryptocurrency trading platform. This document guides partners and merchants in integrating with the UEX API to perform crypto swaps, retrieve currency data, generate payment links, and more. The UEX API uses JSON over HTTPS. All requests should be made to the base URL: https://uexswap.com or https://uex.us. This guide covers authentication, endpoint usage, sample requests/responses, and relevant operational details.
+
+Introduction
+
+
+The UEX API enables programmatic access to the UEX cryptocurrency exchange features. With this API, you can:
+
+Initiate crypto-to-crypto or Cardano token swaps,
+Retrieve order status and swap details,
+Fetch supported currency lists and perform conversion estimations,
+Generate payment URLs for merchant checkout.
+This guide explains each API endpoint, the required parameters, and the expected responses. It is intended for developers building applications or integrations with the UEX platform. Use the latest API version and follow best practices for secure and efficient integration.
+
+Rate Limiting
+
+
+As of now, the UEX API does not publicly specify strict rate limits. If rate limiting is implemented, it will be communicated via headers or documentation. As a best practice, implement exponential backoff and error handling for HTTP 429 (Too Many Requests) in case of request throttling.
+
+KYC & Referral Program Summary
+
+
+UEX offers a referral rewards program. To fully participate, you must complete KYC (Know Your Customer) verification and generate a referral code. Key steps:
+
+Generate Referral Code:
+
+Log in to your UEX account at https://uex.us/.
+Navigate to the Referrals page.
+Click “Generate Referral Link.” For example, you may see a link like https://uex.us/?ref=5drfo01pgq88. Your referral code is the part after ref= (e.g. 5drfo01pgq88).
+Complete KYC Verification:
+
+To use the API and referral program, complete identity verification:
+
+Go to https://uex.us/profile/personal-id.
+Select your ID type (e.g., Passport) and enter the required details.
+Upload a clear photo of your identification document.
+Submit and wait for approval. Once verified, you are eligible for referral rewards.
+Referral Rewards:
+
+For each swap made by a user using your code, you earn a percentage commission. For example, if a referred user exchanges 1 BTC when BTC=100,000 USDT, a 0.19% fee yields 190 USDT to you.
+Cardano (ADA) Swap Bonus: For every Cardano-to-Cardano swap by a referral, you receive 0.5 ADA fixed reward.
+Check Earnings: Log in and visit the Referrals page (Rewards section) to view your accrued bonuses.
+Important: Always apply the referral code in your API requests (where supported) to ensure you receive credit. Ensure that KYC is approved for both your account and any referred users to qualify for rewards.
+UEX
+
+Home
+UEX
+APIS
+Sign in
+powered by Stoplight

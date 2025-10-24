@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: uex-config
+  namespace: uex-payments-dev
+data:
+  # Database Configuration
+  DATABASE_HOST: "postgres-service"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "uex_payments"
+  DATABASE_USER: "admin"
+
+  # Redis Configuration
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+
+  # UEX API Configuration
+  UEX_SWAP_BASE_URL: "https://uexswap.com"
+  UEX_MERCHANT_BASE_URL: "https://uex.us"
+  UEX_POLLING_ENABLED: "true"
+  UEX_POLLING_INTERVAL: "300000"
+
+  # Service URLs (Internal)
+  UEX_BACKEND_URL: "http://uex-backend-service:3903"
+  PROCESSING_TIER_URL: "http://processing-tier-service:8900"
+  MANAGEMENT_BACKEND_URL: "http://management-backend-service:9000"
+
+  # Application Configuration
+  NODE_ENV: "development"
+  LOG_LEVEL: "info"
+
+  # Service Ports
+  PRESENTATION_PORT: "3900"
+  CLIENT_TIER_PORT: "3901"
+  MANAGEMENT_TIER_PORT: "3902"
+  UEX_BACKEND_PORT: "3903"
+  PROCESSING_TIER_PORT: "8900"
+  MANAGEMENT_BACKEND_PORT: "9000"

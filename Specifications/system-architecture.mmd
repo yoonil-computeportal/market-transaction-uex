@@ -1,0 +1,78 @@
+graph TB
+    subgraph "Client Layer"
+        WebApp[Web Application]
+        MobileApp[Mobile Application]
+        ThirdParty[Third-party Integration]
+    end
+
+    subgraph "API Gateway"
+        LB[Load Balancer<br/>Rate Limiting<br/>SSL Termination]
+    end
+
+    subgraph "Application Layer"
+        API[Express.js API Server]
+        
+        subgraph "Controllers"
+            PC[PaymentController]
+            WC[UEXWebhookController]
+        end
+        
+        subgraph "Services"
+            PPS[PaymentProcessingService]
+            ERS[ExchangeRateService]
+            UXS[UEXService]
+            DBS[DatabaseService]
+            CS[CacheService]
+        end
+        
+        subgraph "Background Workers"
+            POL[UEXPollingService<br/>Every 5 minutes]
+        end
+    end
+
+    subgraph "External Services"
+        UEX_SWAP[UEX Swap API<br/>uexswap.com]
+        UEX_MERCHANT[UEX Merchant API<br/>uex.us]
+    end
+
+    subgraph "Data Layer"
+        PG[(PostgreSQL<br/>Database)]
+        CACHE[(In-Memory<br/>Cache)]
+    end
+
+    WebApp --> LB
+    MobileApp --> LB
+    ThirdParty --> LB
+    
+    LB --> API
+    API --> PC
+    API --> WC
+    
+    PC --> PPS
+    PC --> ERS
+    WC --> PPS
+    
+    PPS --> UXS
+    PPS --> DBS
+    PPS --> ERS
+    
+    ERS --> UXS
+    ERS --> CS
+    ERS --> DBS
+    
+    UXS --> UEX_SWAP
+    UXS --> UEX_MERCHANT
+    UXS --> CS
+    
+    POL --> UXS
+    POL --> DBS
+    
+    DBS --> PG
+    CS --> CACHE
+    
+    UEX_SWAP -.Webhook.-> WC
+
+    style UEX_SWAP fill:#ff9999
+    style UEX_MERCHANT fill:#ff9999
+    style PG fill:#99ccff
+    style CACHE fill:#99ccff

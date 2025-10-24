@@ -1,0 +1,49 @@
+sequenceDiagram
+    participant Client
+    participant API
+    participant PaymentProcessingService
+    participant Database
+    participant UEXService
+    participant UEX_API
+
+    Note over Client,UEX_API: Manual Status Check (Client Request)
+    
+    Client->>API: GET /api/payments/transaction/:id/status?refresh=true
+    API->>PaymentProcessingService: getTransactionStatus(id, refresh=true)
+    
+    PaymentProcessingService->>Database: SELECT * FROM payment_transactions WHERE transaction_id = :id
+    Database-->>PaymentProcessingService: Transaction data
+    
+    alt Refresh = true AND uex_order_id exists
+        PaymentProcessingService->>UEXService: getOrderStatus(uex_order_id)
+        UEXService->>UEX_API: POST /api/partners/order-show<br/>{order_id: "UEX-123"}
+        UEX_API-->>UEXService: {status: "Complete", ...}
+        UEXService-->>PaymentProcessingService: Order status
+        
+        PaymentProcessingService->>PaymentProcessingService: Map UEX status to system status<br/>(Complete → completed)
+        
+        PaymentProcessingService->>Database: UPDATE payment_transactions<br/>SET status = 'completed', uex_status = 'Complete'
+        Database-->>PaymentProcessingService: Updated
+    end
+    
+    PaymentProcessingService-->>API: Current status with timeline
+    API-->>Client: {status, timeline, timestamps}
+    
+    Note over Client,UEX_API: Automated Polling (Background Service)
+    
+    loop Every 5 minutes
+        PaymentProcessingService->>Database: SELECT * FROM payment_transactions<br/>WHERE status IN ('pending', 'processing')<br/>AND uex_order_id IS NOT NULL
+        Database-->>PaymentProcessingService: List of pending orders
+        
+        loop For each pending order
+            PaymentProcessingService->>UEXService: getOrderStatus(uex_order_id)
+            UEXService->>UEX_API: POST /api/partners/order-show
+            UEX_API-->>UEXService: Order status
+            UEXService-->>PaymentProcessingService: Status data
+            
+            alt Status Changed
+                PaymentProcessingService->>Database: UPDATE transaction status
+                PaymentProcessingService->>PaymentProcessingService: Trigger notifications
+            end
+        end
+    end

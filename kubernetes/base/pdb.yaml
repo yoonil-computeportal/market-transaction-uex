@@ -1,0 +1,85 @@
+# ==============================================================================
+# Pod Disruption Budgets (PDB)
+# ==============================================================================
+# Ensures minimum number of pods remain available during voluntary disruptions
+# (node drains, rolling updates, etc.)
+#
+# Check PDB status:
+#   kubectl get pdb -n uex-payments-dev
+#   kubectl describe pdb uex-backend-pdb -n uex-payments-dev
+# ==============================================================================
+
+---
+# PDB for UEX Backend (Critical Service)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: uex-backend-pdb
+  namespace: uex-payments-dev
+  labels:
+    app: uex-backend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: uex-backend
+
+---
+# PDB for Processing-Tier Backend
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: processing-tier-pdb
+  namespace: uex-payments-dev
+  labels:
+    app: processing-tier
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: processing-tier
+
+---
+# PDB for Management Backend
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: management-backend-pdb
+  namespace: uex-payments-dev
+  labels:
+    app: management-backend
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: management-backend
+
+---
+# PDB for Client-Tier Frontend
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: client-tier-pdb
+  namespace: uex-payments-dev
+  labels:
+    app: client-tier
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: client-tier
+
+---
+# PDB for Management-Tier Frontend
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: management-tier-pdb
+  namespace: uex-payments-dev
+  labels:
+    app: management-tier
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: management-tier

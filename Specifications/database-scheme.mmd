@@ -1,0 +1,91 @@
+erDiagram
+    SELLER_PAYOUT_ACCOUNTS ||--o{ PAYMENT_TRANSACTIONS : "has"
+    PAYMENT_TRANSACTIONS ||--o{ CURRENCY_CONVERSIONS : "has"
+    PAYMENT_TRANSACTIONS ||--o{ REFERRAL_EARNINGS : "earns"
+    PAYMENT_TRANSACTIONS ||--o| UEX_ORDER_TRACKING : "tracks"
+    
+    SELLER_PAYOUT_ACCOUNTS {
+        uuid seller_id PK
+        string account_holder_name
+        string bank_account_number
+        string routing_number
+        string crypto_wallet_address
+        string preferred_crypto_currency
+        string payout_method
+        timestamp created_at
+    }
+    
+    PAYMENT_TRANSACTIONS {
+        uuid transaction_id PK
+        string client_id FK
+        string seller_id FK
+        decimal client_amount
+        decimal seller_amount
+        string client_currency
+        string seller_currency
+        decimal exchange_rate
+        decimal uex_buyer_fee
+        decimal uex_seller_fee
+        decimal conversion_fee
+        decimal management_fee
+        decimal total_fee
+        string payment_method
+        string settlement_method
+        string status
+        string uex_order_id
+        text uex_deposit_address
+        string uex_status
+        jsonb uex_raw_response
+        jsonb uex_webhook_data
+        text description
+        text recipient_wallet_address
+        timestamp created_at
+        timestamp updated_at
+        timestamp completed_at
+    }
+    
+    CURRENCY_CONVERSIONS {
+        uuid conversion_id PK
+        uuid transaction_id FK
+        string from_currency
+        string to_currency
+        decimal from_amount
+        decimal to_amount
+        decimal exchange_rate
+        decimal conversion_fee
+        string provider
+        timestamp created_at
+    }
+    
+    EXCHANGE_RATES {
+        uuid rate_id PK
+        string from_currency
+        string to_currency
+        decimal rate
+        string source
+        timestamp valid_from
+        timestamp valid_until
+        timestamp created_at
+    }
+    
+    UEX_ORDER_TRACKING {
+        uuid tracking_id PK
+        string uex_order_id UK
+        uuid transaction_id FK
+        string status
+        jsonb status_history
+        timestamp last_polled_at
+        timestamp last_updated_at
+        timestamp created_at
+    }
+    
+    REFERRAL_EARNINGS {
+        uuid earning_id PK
+        uuid transaction_id FK
+        string referral_code
+        decimal commission_percentage
+        decimal commission_amount
+        decimal bonus_ada
+        string currency
+        timestamp created_at
+    }

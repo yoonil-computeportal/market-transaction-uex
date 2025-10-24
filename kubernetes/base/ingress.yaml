@@ -1,0 +1,138 @@
+# ==============================================================================
+# Ingress Configuration
+# ==============================================================================
+# This ingress routes external traffic to internal services
+# Requires an ingress controller (nginx, traefik, etc.)
+# ==============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: uex-payments-ingress
+  namespace: uex-payments-dev
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: uex-payments.local  # Change to your domain
+      http:
+        paths:
+          # Presentation Dashboard
+          - path: /presentation(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: presentation-service
+                port:
+                  number: 3900
+
+          # Client Tier
+          - path: /client(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: client-tier-service
+                port:
+                  number: 3901
+
+          # Management Tier
+          - path: /management(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: management-tier-service
+                port:
+                  number: 3902
+
+          # UEX Backend API
+          - path: /api/uex(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: uex-backend-service
+                port:
+                  number: 3903
+
+          # Processing Tier API
+          - path: /api/processing(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: processing-tier-service
+                port:
+                  number: 8900
+
+          # Management Backend API
+          - path: /api/mgmt(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: management-backend-service
+                port:
+                  number: 9000
+
+---
+# TLS Ingress (Optional - for HTTPS)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: uex-payments-ingress-tls
+  namespace: uex-payments-dev
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - uex-payments.yourdomain.com
+      secretName: uex-payments-tls
+  rules:
+    - host: uex-payments.yourdomain.com
+      http:
+        paths:
+          - path: /presentation(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: presentation-service
+                port:
+                  number: 3900
+          - path: /client(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: client-tier-service
+                port:
+                  number: 3901
+          - path: /management(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: management-tier-service
+                port:
+                  number: 3902
+          - path: /api/uex(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: uex-backend-service
+                port:
+                  number: 3903
+          - path: /api/processing(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: processing-tier-service
+                port:
+                  number: 8900
+          - path: /api/mgmt(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: management-backend-service
+                port:
+                  number: 9000

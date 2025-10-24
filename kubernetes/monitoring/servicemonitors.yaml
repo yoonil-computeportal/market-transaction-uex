@@ -1,0 +1,123 @@
+# ==============================================================================
+# Service Monitors for Prometheus Operator
+# ==============================================================================
+# ServiceMonitor resources tell Prometheus Operator how to scrape metrics
+# from the UEX Payment Processing System services
+#
+# Requires Prometheus Operator to be installed
+# ==============================================================================
+
+---
+# ServiceMonitor for UEX Backend
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: uex-backend-monitor
+  namespace: uex-payments-dev
+  labels:
+    app: uex-backend
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: uex-backend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - uex-payments-dev
+
+---
+# ServiceMonitor for Processing-Tier
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: processing-tier-monitor
+  namespace: uex-payments-dev
+  labels:
+    app: processing-tier
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: processing-tier
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - uex-payments-dev
+
+---
+# ServiceMonitor for Management Backend
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: management-backend-monitor
+  namespace: uex-payments-dev
+  labels:
+    app: management-backend
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: management-backend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - uex-payments-dev
+
+---
+# ServiceMonitor for PostgreSQL (using postgres-exporter)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-monitor
+  namespace: uex-payments-dev
+  labels:
+    app: postgres
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - uex-payments-dev
+
+---
+# ServiceMonitor for Redis (using redis-exporter)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-monitor
+  namespace: uex-payments-dev
+  labels:
+    app: redis
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - uex-payments-dev

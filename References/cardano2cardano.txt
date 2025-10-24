@@ -1,0 +1,156 @@
+https://uex-us.stoplight.io/docs/uex/tijbntxdfqop1-cardano-to-cardano
+
+
+Stoplight logo
+
+Like what you see? Create your own free Stoplight workspace to start documenting and designing APIs today.
+
+Create a Workspace
+
+Cardano to Cardano
+POST
+https://uexswap.com/api/partners/swap/initiate-cardano-to-cardano
+Initiates a swap order on the Cardano blockchain and returns an unsigned transaction (in CBOR format) for signing. All inputs are validated before creation. The returned CBOR data must be signed by the user's wallet to complete the swap.
+Request
+
+Body
+
+
+
+application/json
+
+Payload to create a new token order, including all necessary details such as token type, amount, recipient address, and any relevant metadata required to initiate the order.
+buyer_address
+string
+required
+Blockchain address of the buyer who initiates the swap or transaction. Typically, this is the same as the recipient_address unless you want to send the swapped tokens to a different wallet.
+Example:
+addr1qx8wcywmx3yl9pm7zv8n70fyyyj3974j5fpx3dmkgrjr5r86feva6e0vwcu204vs9l68t6um5puaalmhf82vsw3sax0sk5vjtq
+recipient_address
+string
+required
+Destination blockchain address where the output tokens will be sent after the swap. Usually, it is the same as the buyer_address unless you want to send tokens to a different wallet.
+Example:
+addr1vxur7e6mrayscnprz3thfztgf0qhjxaxh96trvy8vyjl6jg3ehh7k
+token_in
+string
+required
+Token ID or asset identifier representing the asset to swap from. Use an empty string ("") to specify ADA, the native Cardano cryptocurrency.
+token_out
+string
+required
+Token ID or asset identifier representing the asset the buyer wants to swap to. Use an empty string ("") to specify ADA, the native Cardano token.
+Example:
+a00fdf4fb9ab6c8c2bd1533a2f14855edf12aed5ecbf96d4b5f5b9394334
+amount
+number<float>
+required
+Amount of token_in (or ADA if token_in is empty) that the buyer wants to swap.
+Example:
+1
+slippage
+number<float>
+required
+Maximum acceptable slippage percentage to protect from price volatility during swap (e.g., 5%).
+Example:
+5
+blacklisted_dexes
+array[string]
+required
+List of decentralized exchanges (DEXes) to exclude from routing during the swap. By default, the following DEXes are excluded: CERRA, MUESLISWAP, GENIUS, SNEKFUN, SPECTRUM, AXO. You can specify additional DEXes to exclude by adding them to this list.
+Example:
+["CERRA","MUESLISWAP","GENIUS","SNEKFUN","SPECTRUM","AXO"]
+available_user_ada
+number<float>
+required
+Amount of ADA available on the user's wallet for fees or swap.
+Example:
+15
+ref_code
+string
+required
+ref_code: Referral code to credit partners or affiliates. To get your referral code:Show all...
+Example:
+5drfo01pgq88
+Responses
+
+200
+400
+403
+Order created and CBOR generated successfully. Please review the transaction details carefully and sign the transaction on the frontend to complete the process.
+Body
+
+
+
+application/json
+
+responses
+/
+200
+status
+boolean
+Overall success status of the order creation process.
+Example:
+true
+
+cbor
+object
+ontains data related to the CBOR-encoded transaction.
+status
+boolean
+Status of the CBOR generation step.
+Example:
+true
+cbor
+string
+CBOR-encoded transaction data (hex or base64 string) to be signed by the frontend client.
+Example:
+84a60082825820ffbd05b32008eec95edfa8d4a76a2df687f5a51165bfeacc2884ec3fcd919bf202825820cc97e57c3159449ec4f395277eec9c50e088ca60393a6da9be2b37079d0aa807030183a300583911c3e28c36c3447315ba5a56f33da6a6ddc1770a876a8d9f0cb3a97c4cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99f011a00387520028201d81859012ed8799fd8799f581c8eec11db3449f2877e130f3f3d24212512fab2a24268b77640e43a0cffd8799fd8799f581cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99fffffffffd87980d8799fd8799f581cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99fffffffffd87980d8799f581cf5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c5820848e0c1ff4243da598bee04bdd1eb016d741d17f0cc82e535cae1bc0150ea1f2ffd8799fd87a80d8799f1a000f4240ff190d4dd87980ff1a000aae60d87a80ff82583901a0adf3d71f77eef162098726fe9723a5b99b4a4e6a2a1b80010660982a4d6ec982ac5dffbfa35ac40bf45ad84ea34857878fd08d5784ddc71a000f4240825839018eec11db3449f2877e130f3f3d24212512fab2a24268b77640e43a0cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99f1a000f7752021a0002e321031a09813a05075820928951e37c00b69a185f62628e04f984dc7813be83897bc8de67f1c8bb623c55081a09812bf5a0f5a11902a2a1636d7367816b5545584150502053776170
+txHash
+string
+Hash of the blockchain transaction associated with this order, used for verification.Show all...
+Example:
+56f59d11a4ed048dcc8907308ddc6459939a9bb7ff45495069c993cb1e719ac3
+message
+string
+Informational message prompting the user to sign the transaction on the frontend.
+Example:
+Order created and CBOR generated successfully. Please sign the transaction on the frontend.
+curl --request POST \
+  --url https://uexswap.com/api/partners/swap/initiate-cardano-to-cardano \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "buyer_address": "addr1qx8wcywmx3yl9pm7zv8n70fyyyj3974j5fpx3dmkgrjr5r86feva6e0vwcu204vs9l68t6um5puaalmhf82vsw3sax0sk5vjtq",
+  "recipient_address": "addr1vxur7e6mrayscnprz3thfztgf0qhjxaxh96trvy8vyjl6jg3ehh7k",
+  "token_in": "string",
+  "token_out": "a00fdf4fb9ab6c8c2bd1533a2f14855edf12aed5ecbf96d4b5f5b9394334",
+  "amount": 1,
+  "slippage": 5,
+  "blacklisted_dexes": [
+    "CERRA",
+    "MUESLISWAP",
+    "GENIUS",
+    "SNEKFUN",
+    "SPECTRUM",
+    "AXO"
+  ],
+  "available_user_ada": 15,
+  "ref_code": "5drfo01pgq88"
+}'
+{
+  "status": true,
+  "cbor": {
+    "status": true,
+    "cbor": "84a60082825820ffbd05b32008eec95edfa8d4a76a2df687f5a51165bfeacc2884ec3fcd919bf202825820cc97e57c3159449ec4f395277eec9c50e088ca60393a6da9be2b37079d0aa807030183a300583911c3e28c36c3447315ba5a56f33da6a6ddc1770a876a8d9f0cb3a97c4cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99f011a00387520028201d81859012ed8799fd8799f581c8eec11db3449f2877e130f3f3d24212512fab2a24268b77640e43a0cffd8799fd8799f581cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99fffffffffd87980d8799fd8799f581cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99fffffffffd87980d8799f581cf5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c5820848e0c1ff4243da598bee04bdd1eb016d741d17f0cc82e535cae1bc0150ea1f2ffd8799fd87a80d8799f1a000f4240ff190d4dd87980ff1a000aae60d87a80ff82583901a0adf3d71f77eef162098726fe9723a5b99b4a4e6a2a1b80010660982a4d6ec982ac5dffbfa35ac40bf45ad84ea34857878fd08d5784ddc71a000f4240825839018eec11db3449f2877e130f3f3d24212512fab2a24268b77640e43a0cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99f1a000f7752021a0002e321031a09813a05075820928951e37c00b69a185f62628e04f984dc7813be83897bc8de67f1c8bb623c55081a09812bf5a0f5a11902a2a1636d7367816b5545584150502053776170",
+    "txHash": "56f59d11a4ed048dcc8907308ddc6459939a9bb7ff45495069c993cb1e719ac3"
+  },
+  "message": "Order created and CBOR generated successfully. Please sign the transaction on the frontend."
+}
+UEX
+
+Home
+UEX
+APIS
+Sign in
+powered by Stoplight

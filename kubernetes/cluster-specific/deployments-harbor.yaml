@@ -1,0 +1,338 @@
+# ==============================================================================
+# UEX Payment Processing System - Deployments (Harbor Registry)
+# ==============================================================================
+# Updated deployments using Harbor registry: repository.computeportal.app
+# ==============================================================================
+
+---
+# Presentation Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: presentation
+  namespace: uex-payments-dev
+  labels:
+    app: presentation
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: presentation
+  template:
+    metadata:
+      labels:
+        app: presentation
+        tier: frontend
+    spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
+      containers:
+        - name: presentation
+          image: repository.computeportal.app/uex-payments/presentation:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+---
+# Client Tier Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-tier
+  namespace: uex-payments-dev
+  labels:
+    app: client-tier
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: client-tier
+  template:
+    metadata:
+      labels:
+        app: client-tier
+        tier: frontend
+    spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
+      containers:
+        - name: client-tier
+          image: repository.computeportal.app/uex-payments/client-tier:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+---
+# Management Frontend Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: management-frontend
+  namespace: uex-payments-dev
+  labels:
+    app: management-frontend
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: management-frontend
+  template:
+    metadata:
+      labels:
+        app: management-frontend
+        tier: frontend
+    spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
+      containers:
+        - name: management-frontend
+          image: repository.computeportal.app/uex-payments/management-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+---
+# UEX Backend Service (Main Payment Processing)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uex-backend
+  namespace: uex-payments-dev
+  labels:
+    app: uex-backend
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: uex-backend
+  template:
+    metadata:
+      labels:
+        app: uex-backend
+        tier: backend
+    spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
+      containers:
+        - name: uex-backend
+          image: repository.computeportal.app/uex-payments/uex-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3903
+          env:
+            - name: PORT
+              value: "3903"
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: database-url
+            - name: UEX_REFERRAL_CODE
+              valueFrom:
+                configMapKeyRef:
+                  name: uex-config
+                  key: uex-referral-code
+            - name: UEX_POLLING_ENABLED
+              value: "true"
+            - name: UEX_POLL_INTERVAL_MINUTES
+              value: "5"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "300m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/payments/health
+              port: 3903
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/payments/health
+              port: 3903
+            initialDelaySeconds: 10
+            periodSeconds: 5
+
+---
+# Processing Tier Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: processing-tier
+  namespace: uex-payments-dev
+  labels:
+    app: processing-tier
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: processing-tier
+  template:
+    metadata:
+      labels:
+        app: processing-tier
+        tier: backend
+    spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
+      containers:
+        - name: processing-tier
+          image: repository.computeportal.app/uex-payments/processing-tier:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8900
+          env:
+            - name: PORT
+              value: "8900"
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: database-url
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "300m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8900
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8900
+            initialDelaySeconds: 10
+            periodSeconds: 5
+
+---
+# Management Backend Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: management-backend
+  namespace: uex-payments-dev
+  labels:
+    app: management-backend
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: management-backend
+  template:
+    metadata:
+      labels:
+        app: management-backend
+        tier: backend
+    spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
+      containers:
+        - name: management-backend
+          image: repository.computeportal.app/uex-payments/management-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9000
+          env:
+            - name: PORT
+              value: "9000"
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: uex-secrets
+                  key: database-url
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "400m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 5

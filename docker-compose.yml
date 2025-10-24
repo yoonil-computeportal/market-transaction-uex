@@ -1,0 +1,237 @@
+# ==============================================================================
+# Docker Compose - Local Development
+# ==============================================================================
+# Run all services locally for development and testing
+#
+# Usage:
+#   docker-compose up -d
+#   docker-compose logs -f uex-backend
+#   docker-compose down
+#
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # Database - PostgreSQL
+  # ===========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: uex-postgres
+    environment:
+      POSTGRES_DB: uex_payments
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: localdev123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - uex-network
+
+  # ===========================================================================
+  # Cache - Redis
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: uex-redis
+    command: redis-server --requirepass localdev123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - uex-network
+
+  # ===========================================================================
+  # Service 1: Presentation Dashboard (Port 3900)
+  # ===========================================================================
+  presentation:
+    build:
+      context: ./presentation
+      dockerfile: Dockerfile
+    container_name: uex-presentation
+    ports:
+      - "3900:3900"
+    environment:
+      - NODE_ENV=development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3900/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - uex-network
+
+  # ===========================================================================
+  # Service 2: Client-Tier Frontend (Port 3901)
+  # ===========================================================================
+  client-tier:
+    build:
+      context: ./client-tier
+      dockerfile: Dockerfile
+    container_name: uex-client-tier
+    ports:
+      - "3901:3901"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8900
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3901/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - uex-network
+    depends_on:
+      - processing-tier
+
+  # ===========================================================================
+  # Service 3: Management-Tier Frontend (Port 3902)
+  # ===========================================================================
+  management-tier:
+    build:
+      context: ./management-tier/frontend
+      dockerfile: Dockerfile
+    container_name: uex-management-tier
+    ports:
+      - "3902:3902"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:9000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3902/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - uex-network
+    depends_on:
+      - management-backend
+
+  # ===========================================================================
+  # Service 4: UEX Backend (Port 3903) - CRITICAL SERVICE
+  # ===========================================================================
+  uex-backend:
+    build:
+      context: ./uex
+      dockerfile: Dockerfile
+    container_name: uex-backend
+    ports:
+      - "3903:3903"
+    environment:
+      - NODE_ENV=development
+      - PORT=3903
+      - DATABASE_URL=postgresql://admin:localdev123@postgres:5432/uex_payments
+      - REDIS_URL=redis://:localdev123@redis:6379
+      - UEX_REFERRAL_CODE=${UEX_REFERRAL_CODE:-5drfo01pgq88}
+      - UEX_CLIENT_ID=${UEX_CLIENT_ID:-}
+      - UEX_SECRET_KEY=${UEX_SECRET_KEY:-}
+      - UEX_SWAP_BASE_URL=https://uexswap.com
+      - UEX_MERCHANT_BASE_URL=https://uex.us
+      - UEX_POLLING_ENABLED=true
+      - UEX_POLLING_INTERVAL=300000
+      - LOG_LEVEL=debug
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3903/api/uex/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+    networks:
+      - uex-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ===========================================================================
+  # Service 5: Processing-Tier Backend (Port 8900)
+  # ===========================================================================
+  processing-tier:
+    build:
+      context: ./processing-tier
+      dockerfile: Dockerfile
+    container_name: uex-processing-tier
+    ports:
+      - "8900:8900"
+    environment:
+      - NODE_ENV=development
+      - PORT=8900
+      - DATABASE_URL=postgresql://admin:localdev123@postgres:5432/uex_payments
+      - REDIS_URL=redis://:localdev123@redis:6379
+      - UEX_BACKEND_URL=http://uex-backend:3903
+      - LOG_LEVEL=debug
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8900/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+    networks:
+      - uex-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      uex-backend:
+        condition: service_started
+
+  # ===========================================================================
+  # Service 6: Management Backend (Port 9000)
+  # ===========================================================================
+  management-backend:
+    build:
+      context: ./management-tier/backend
+      dockerfile: Dockerfile
+    container_name: uex-management-backend
+    ports:
+      - "9000:9000"
+    environment:
+      - NODE_ENV=development
+      - PORT=9000
+      - DATABASE_URL=postgresql://admin:localdev123@postgres:5432/uex_payments
+      - REDIS_URL=redis://:localdev123@redis:6379
+      - UEX_BACKEND_URL=http://uex-backend:3903
+      - PROCESSING_TIER_URL=http://processing-tier:8900
+      - LOG_LEVEL=debug
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+    networks:
+      - uex-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+# ===========================================================================
+# Networks
+# ===========================================================================
+networks:
+  uex-network:
+    driver: bridge
+
+# ===========================================================================
+# Volumes
+# ===========================================================================
+volumes:
+  postgres-data:
+  redis-data:

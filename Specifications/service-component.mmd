@@ -1,0 +1,69 @@
+graph TD
+    subgraph "Controllers"
+        PC[PaymentController]
+        WC[UEXWebhookController]
+    end
+    
+    subgraph "Core Services"
+        PPS[PaymentProcessingService]
+        ERS[ExchangeRateService]
+        UXS[UEXService]
+    end
+    
+    subgraph "Infrastructure Services"
+        DBS[DatabaseService]
+        CS[CacheService]
+        LS[LoggingService]
+    end
+    
+    subgraph "Background Services"
+        POL[UEXPollingService]
+    end
+    
+    subgraph "External APIs"
+        UEX_SWAP[UEX Swap API]
+        UEX_MERCHANT[UEX Merchant API]
+    end
+    
+    subgraph "Data Stores"
+        PG[(PostgreSQL)]
+        CACHE[(node-cache)]
+    end
+    
+    PC --> PPS
+    PC --> ERS
+    PC --> LS
+    
+    WC --> PPS
+    WC --> LS
+    
+    PPS --> ERS
+    PPS --> UXS
+    PPS --> DBS
+    PPS --> LS
+    
+    ERS --> UXS
+    ERS --> CS
+    ERS --> DBS
+    ERS --> LS
+    
+    UXS --> UEX_SWAP
+    UXS --> UEX_MERCHANT
+    UXS --> CS
+    UXS --> LS
+    
+    POL --> UXS
+    POL --> DBS
+    POL --> LS
+    
+    DBS --> PG
+    CS --> CACHE
+    
+    style PPS fill:#FFE4B5
+    style ERS fill:#FFE4B5
+    style UXS fill:#FFE4B5
+    style DBS fill:#B0E0E6
+    style CS fill:#B0E0E6
+    style LS fill:#B0E0E6
+    style UEX_SWAP fill:#FFB6C1
+    style UEX_MERCHANT fill:#FFB6C1

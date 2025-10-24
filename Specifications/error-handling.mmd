@@ -1,0 +1,57 @@
+stateDiagram-v2
+    [*] --> MakeAPICall: Initiate UEX API Request
+    
+    MakeAPICall --> Success: HTTP 200/201
+    MakeAPICall --> NetworkError: Network Timeout/Unreachable
+    MakeAPICall --> ClientError: HTTP 4xx
+    MakeAPICall --> ServerError: HTTP 5xx
+    
+    Success --> [*]: Return Response
+    
+    NetworkError --> CheckRetryCount: Connection Failed
+    
+    CheckRetryCount --> Retry1: Retry Count = 0
+    CheckRetryCount --> Retry2: Retry Count = 1
+    CheckRetryCount --> Retry3: Retry Count = 2
+    CheckRetryCount --> MaxRetriesReached: Retry Count >= 3
+    
+    Retry1 --> Wait1: Wait 1 second
+    Retry2 --> Wait2: Wait 2 seconds (exponential)
+    Retry3 --> Wait4: Wait 4 seconds (exponential)
+    
+    Wait1 --> MakeAPICall: Retry with backoff
+    Wait2 --> MakeAPICall: Retry with backoff
+    Wait4 --> MakeAPICall: Retry with backoff
+    
+    ClientError --> CheckErrorType: Parse Error Code
+    
+    CheckErrorType --> InvalidInput: 400 Bad Request
+    CheckErrorType --> Unauthorized: 401 Unauthorized
+    CheckErrorType --> NotFound: 404 Not Found
+    CheckErrorType --> RateLimited: 429 Too Many Requests
+    
+    InvalidInput --> LogError: Log validation error
+    Unauthorized --> RefreshToken: Refresh OAuth token
+    NotFound --> LogError
+    RateLimited --> WaitRateLimit: Wait rate limit window
+    
+    RefreshToken --> MakeAPICall: Retry with new token
+    WaitRateLimit --> MakeAPICall: Retry after cooldown
+    LogError --> ReturnError: Return error to caller
+    
+    ServerError --> WaitServerError: Wait 5 seconds
+    WaitServerError --> CheckRetryCount
+    
+    MaxRetriesReached --> CheckCache: Look for cached data
+    
+    CheckCache --> UseCachedData: Cache available
+    CheckCache --> FallbackError: No cache available
+    
+    UseCachedData --> LogWarning: Log cache fallback
+    LogWarning --> [*]: Return cached data + warning
+    
+    FallbackError --> LogCritical: Log critical error
+    LogCritical --> NotifyOps: Alert operations team
+    NotifyOps --> [*]: Return error to caller
+    
+    ReturnError --> [*]

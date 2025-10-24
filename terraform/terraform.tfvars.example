@@ -1,0 +1,344 @@
+# ============================================================================
+# UEX Payment Processing System - Terraform Variables Example
+# ============================================================================
+#
+# INSTRUCTIONS:
+# 1. Copy this file to terraform.tfvars
+# 2. Update the values with your actual configuration
+# 3. Never commit terraform.tfvars to version control (it's in .gitignore)
+#
+# cp terraform.tfvars.example terraform.tfvars
+#
+# ============================================================================
+
+# ============================================================================
+# General Configuration
+# ============================================================================
+
+project_name = "uex-payments"
+environment  = "dev"  # dev, staging, or prod
+aws_region   = "us-east-1"
+owner        = "DevOps Team"
+cost_center  = "Engineering"
+
+tags = {
+  Team        = "Platform Engineering"
+  Application = "UEX Payment Processing"
+  Repository  = "github.com/your-org/uex-payments"
+}
+
+# ============================================================================
+# VPC and Networking Configuration
+# ============================================================================
+
+vpc_cidr             = "10.0.0.0/16"
+availability_zones   = ["us-east-1a", "us-east-1b", "us-east-1c"]
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+private_subnet_cidrs_app  = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
+private_subnet_cidrs_data = ["10.0.21.0/24", "10.0.22.0/24", "10.0.23.0/24"]
+
+enable_nat_gateway = true
+enable_vpn_gateway = false
+
+# SECURITY: Restrict to your office/VPN IP in production
+# Example: ["203.0.113.0/24", "198.51.100.0/24"]
+allowed_cidr_blocks = ["0.0.0.0/0"]
+
+# ============================================================================
+# RDS PostgreSQL Configuration
+# ============================================================================
+
+db_engine_version       = "15.4"
+db_instance_class       = "db.t3.medium"  # dev: db.t3.medium, staging: db.t3.large, prod: db.r5.xlarge
+db_allocated_storage    = 100             # GB
+db_max_allocated_storage = 500            # GB (auto-scaling limit)
+
+db_master_username      = "admin"
+# Leave empty to auto-generate a secure password
+db_master_password      = ""
+db_database_name        = "uex_payments"
+
+# High Availability
+db_multi_az             = false  # dev: false, staging: true, prod: true
+db_create_read_replica  = false  # dev: false, staging: true, prod: true
+db_read_replica_count   = 0      # dev: 0, staging: 1, prod: 2
+
+# Backups
+db_backup_retention_period = 7   # dev: 7, staging: 14, prod: 30
+db_backup_window           = "03:00-04:00"  # UTC
+db_maintenance_window      = "sun:04:00-sun:05:00"  # UTC
+
+# Monitoring
+db_monitoring_interval          = 60
+db_performance_insights_enabled = true
+
+# ============================================================================
+# ElastiCache Redis Configuration
+# ============================================================================
+
+redis_node_type              = "cache.t3.micro"  # dev: cache.t3.micro, staging: cache.t3.small, prod: cache.r5.large
+redis_num_cache_nodes        = 1                 # dev: 1, staging: 2, prod: 3
+redis_engine_version         = "7.0"
+redis_port                   = 6379
+
+redis_auth_token_enabled         = true
+redis_automatic_failover_enabled = false  # dev: false, staging: true, prod: true
+redis_multi_az_enabled           = false  # dev: false, staging: true, prod: true
+
+redis_snapshot_retention_limit = 5
+redis_snapshot_window          = "02:00-03:00"  # UTC
+redis_maintenance_window       = "sun:05:00-sun:06:00"  # UTC
+
+# ============================================================================
+# ECS Configuration
+# ============================================================================
+
+ecs_enable_container_insights = true
+ecs_log_retention_in_days     = 30  # dev: 7, staging: 30, prod: 90
+
+# Auto-scaling thresholds
+ecs_cpu_target_value    = 70
+ecs_memory_target_value = 75
+
+# Deployment configuration
+ecs_deployment_maximum_percent         = 200
+ecs_deployment_minimum_healthy_percent = 100
+
+# ──────────────────────────────────────────────────────────────────────────
+# Presentation Service (Port 3900)
+# ──────────────────────────────────────────────────────────────────────────
+ecs_presentation_cpu           = 512   # 0.5 vCPU
+ecs_presentation_memory        = 1024  # 1 GB
+ecs_presentation_desired_count = 2
+ecs_presentation_min_capacity  = 1
+ecs_presentation_max_capacity  = 5
+presentation_image_tag         = "latest"
+
+presentation_env_vars = {
+  NODE_ENV = "development"
+  PORT     = "3900"
+}
+
+# ──────────────────────────────────────────────────────────────────────────
+# Client Tier Service (Port 3901)
+# ──────────────────────────────────────────────────────────────────────────
+ecs_client_tier_cpu           = 512
+ecs_client_tier_memory        = 1024
+ecs_client_tier_desired_count = 2
+ecs_client_tier_min_capacity  = 1
+ecs_client_tier_max_capacity  = 5
+client_tier_image_tag         = "latest"
+
+client_tier_env_vars = {
+  NODE_ENV = "development"
+  PORT     = "3901"
+}
+
+# ──────────────────────────────────────────────────────────────────────────
+# Management Tier Service (Port 3902)
+# ──────────────────────────────────────────────────────────────────────────
+ecs_management_tier_cpu           = 512
+ecs_management_tier_memory        = 1024
+ecs_management_tier_desired_count = 2
+ecs_management_tier_min_capacity  = 1
+ecs_management_tier_max_capacity  = 5
+management_tier_image_tag         = "latest"
+
+management_tier_env_vars = {
+  NODE_ENV = "development"
+  PORT     = "3902"
+}
+
+# ──────────────────────────────────────────────────────────────────────────
+# UEX Backend Service (Port 3903) - CRITICAL SERVICE
+# ──────────────────────────────────────────────────────────────────────────
+ecs_uex_backend_cpu           = 1024  # 1 vCPU
+ecs_uex_backend_memory        = 2048  # 2 GB
+ecs_uex_backend_desired_count = 2
+ecs_uex_backend_min_capacity  = 1
+ecs_uex_backend_max_capacity  = 10
+uex_backend_image_tag         = "latest"
+
+uex_backend_env_vars = {
+  NODE_ENV             = "development"
+  PORT                 = "3903"
+  UEX_POLLING_ENABLED  = "true"
+  UEX_POLLING_INTERVAL = "300000"  # 5 minutes
+  LOG_LEVEL            = "info"
+}
+
+# ──────────────────────────────────────────────────────────────────────────
+# Processing Tier Service (Port 8900)
+# ──────────────────────────────────────────────────────────────────────────
+ecs_processing_tier_cpu           = 1024
+ecs_processing_tier_memory        = 2048
+ecs_processing_tier_desired_count = 2
+ecs_processing_tier_min_capacity  = 1
+ecs_processing_tier_max_capacity  = 5
+processing_tier_image_tag         = "latest"
+
+processing_tier_env_vars = {
+  NODE_ENV = "development"
+  PORT     = "8900"
+}
+
+# ──────────────────────────────────────────────────────────────────────────
+# Management Backend Service (Port 9000)
+# ──────────────────────────────────────────────────────────────────────────
+ecs_management_backend_cpu           = 512
+ecs_management_backend_memory        = 1024
+ecs_management_backend_desired_count = 2
+ecs_management_backend_min_capacity  = 1
+ecs_management_backend_max_capacity  = 5
+management_backend_image_tag         = "latest"
+
+management_backend_env_vars = {
+  NODE_ENV = "development"
+  PORT     = "9000"
+}
+
+# ============================================================================
+# ALB Configuration
+# ============================================================================
+
+# SSL/TLS Certificate
+# Create ACM certificate first: https://console.aws.amazon.com/acm/
+# Example: arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012
+acm_certificate_arn = ""
+
+alb_ssl_policy = "ELBSecurityPolicy-TLS-1-2-2017-01"
+
+# Access Logs
+alb_enable_access_logs = true
+alb_log_bucket_name    = ""  # Leave empty to auto-create
+
+# ============================================================================
+# ECR Configuration
+# ============================================================================
+
+ecr_max_image_count = 10  # Keep last 10 images per repository
+
+# ============================================================================
+# UEX API Configuration
+# ============================================================================
+#
+# IMPORTANT: Get these from https://uex.us/
+# 1. Complete KYC verification: https://uex.us/profile/personal-id
+# 2. Generate referral code: https://uex.us/referrals
+# 3. (Optional) Get merchant credentials for payment links
+#
+
+# REQUIRED: Your UEX referral code
+uex_referral_code = "5drfo01pgq88"  # CHANGE THIS
+
+# OPTIONAL: Merchant API credentials (for payment link generation)
+uex_client_id  = ""  # Leave empty if not using merchant API
+uex_secret_key = ""  # Leave empty if not using merchant API
+
+# UEX API endpoints (usually don't need to change)
+uex_swap_base_url     = "https://uexswap.com"
+uex_merchant_base_url = "https://uex.us"
+
+# ============================================================================
+# KMS Configuration
+# ============================================================================
+
+# IAM principals that can administer the KMS key
+kms_key_administrators = [
+  # "arn:aws:iam::123456789012:user/admin",
+  # "arn:aws:iam::123456789012:role/AdminRole",
+]
+
+# IAM principals that can use the KMS key for encryption/decryption
+kms_key_users = [
+  # "arn:aws:iam::123456789012:role/ECSTaskRole",
+]
+
+# ============================================================================
+# Monitoring and Alerting Configuration
+# ============================================================================
+
+# Email addresses for CloudWatch alarms
+alert_email_addresses = [
+  # "devops@yourcompany.com",
+  # "oncall@yourcompany.com",
+]
+
+# SNS topic ARNs (if you have existing topics)
+critical_alarm_actions = []
+warning_alarm_actions  = []
+
+# Alarm thresholds
+alarm_ecs_cpu_threshold          = 80   # percent
+alarm_ecs_memory_threshold       = 85   # percent
+alarm_rds_cpu_threshold          = 85   # percent
+alarm_rds_storage_threshold      = 20   # GB free
+alarm_rds_connection_threshold   = 160  # connection count
+alarm_alb_5xx_threshold          = 5    # percent
+alarm_alb_response_time_threshold = 2    # seconds
+
+# ============================================================================
+# Route53 DNS Configuration (Optional)
+# ============================================================================
+
+create_route53_records = false
+
+# If using Route53:
+# domain_name      = "example.com"
+# subdomain_prefix = "dev"  # Creates dev.example.com
+domain_name      = ""
+subdomain_prefix = ""
+
+# ============================================================================
+# Environment-Specific Examples
+# ============================================================================
+
+# ──────────────────────────────────────────────────────────────────────────
+# DEVELOPMENT ENVIRONMENT
+# ──────────────────────────────────────────────────────────────────────────
+# environment                 = "dev"
+# db_instance_class          = "db.t3.medium"
+# db_multi_az                = false
+# db_backup_retention_period = 7
+# redis_node_type            = "cache.t3.micro"
+# ecs_presentation_desired_count = 1
+# ecs_client_tier_desired_count  = 1
+# Estimated cost: ~$150/month
+
+# ──────────────────────────────────────────────────────────────────────────
+# STAGING ENVIRONMENT
+# ──────────────────────────────────────────────────────────────────────────
+# environment                 = "staging"
+# db_instance_class          = "db.t3.large"
+# db_multi_az                = true
+# db_create_read_replica     = true
+# db_read_replica_count      = 1
+# db_backup_retention_period = 14
+# redis_node_type            = "cache.t3.small"
+# redis_num_cache_nodes      = 2
+# redis_multi_az_enabled     = true
+# ecs_presentation_desired_count = 2
+# ecs_client_tier_desired_count  = 2
+# Estimated cost: ~$400/month
+
+# ──────────────────────────────────────────────────────────────────────────
+# PRODUCTION ENVIRONMENT
+# ──────────────────────────────────────────────────────────────────────────
+# environment                 = "prod"
+# db_instance_class          = "db.r5.xlarge"
+# db_multi_az                = true
+# db_create_read_replica     = true
+# db_read_replica_count      = 2
+# db_backup_retention_period = 30
+# redis_node_type            = "cache.r5.large"
+# redis_num_cache_nodes      = 3
+# redis_multi_az_enabled     = true
+# redis_automatic_failover_enabled = true
+# ecs_presentation_desired_count = 3
+# ecs_presentation_min_capacity  = 3
+# ecs_presentation_max_capacity  = 10
+# ecs_client_tier_desired_count  = 3
+# ecs_client_tier_min_capacity   = 3
+# ecs_client_tier_max_capacity   = 10
+# allowed_cidr_blocks = ["203.0.113.0/24"]  # Restrict access
+# Estimated cost: ~$1,200/month

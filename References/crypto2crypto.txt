@@ -1,0 +1,194 @@
+https://uex-us.stoplight.io/docs/uex/bqyrvj6lpf28v-crypto-to-crypto
+
+
+Stoplight logo
+
+Like what you see? Create your own free Stoplight workspace to start documenting and designing APIs today.
+
+Create a Workspace
+
+Crypto to Crypto
+POST
+https://uexswap.com/api/partners/swap/initiate-crypto-to-crypto
+Initiates a new cryptocurrency-to-cryptocurrency swap.
+
+Validates all provided inputs before creating the order.
+
+Note: Before using this API, please review the usage guidelines and instructions at: https://uex-us.stoplight.io/docs/uex-us/branches/main/4qv65b3k0kxfm-uex-us-swap
+Request
+
+Body
+
+
+
+application/json
+
+Creates a new cryptocurrency-to-cryptocurrency swap order. The system validates all inputs and, if valid, returns details including the deposit address where the base currency should be sent.
+send_amount
+number<float>
+required
+Amount of the base cryptocurrency to swap.
+Example:
+1
+from_currency
+string
+required
+Symbol/code of the source cryptocurrency (base currency) (e.g., "BTC").
+Example:
+BTC
+base_currency_chain_id
+string
+required
+Blockchain network name of the base currency (e.g., "BTC" or network-specific code).
+Example:
+BTC
+to_currency
+string
+required
+Symbol/code of the target cryptocurrency to receive (quote currency).
+Example:
+USDT
+quote_currency_chain_id
+string
+required
+Blockchain network name of the quote currency.
+Example:
+TRX
+userWallet
+string
+required
+The wallet address where the swapped funds (quote currency) should be sent.
+Example:
+TQ3LqkLj4FVq7ZQf8uqJHfEgF7rHjsq2KE
+receive_tag
+string or null
+Optional memo/tag for destination (used by some blockchains like XRP, XLM).
+Example:
+null
+
+extend
+object
+required
+Additional metadata.
+ref_code
+string
+required
+ref_code: Required referral code to credit partners or affiliates. To get your referral code:Show all...
+Example:
+5drfo01pgq88
+Responses
+
+200
+400
+403
+Swap initiated successfully
+Body
+
+
+
+application/json
+
+success
+boolean
+Indicates if the request was successfully processed.
+Example:
+true
+
+data
+object
+Contains detailed information about the created order.
+orderId
+string
+Unique identifier of the created order.
+Example:
+xaAkVZUkI0pE
+depositAddress
+string
+Blockchain address where you should send the base currency.
+Example:
+1FkccfHWhUwdwUAtY7AVEypnM53K17H51t
+baseCurrencyAmount
+string
+Amount of the base currency to swap.
+Example:
+1
+depositTag
+string or null
+Tag or memo for the deposit address (used by some blockchains). Can be null.
+Example:
+null
+quoteCurrencyAmount
+string
+Amount of the quote currency the user will receive.
+Example:
+106578.762635
+recipientAddress
+string
+Address where the swapped funds will be sent.
+Example:
+TQ3LqkLj4FVq7ZQf8uqJHfEgF7rHjsq2KE
+
+baseCurrency
+object
+Details about the base currency.
+
+quoteCurrency
+object
+Details about the quote currency.
+provider_id
+string
+Identifier of the service provider handling this order.
+Example:
+076a37cfef8908618e7e6e8c9a8be66a
+ref_code
+string
+Referral code associated with the order.
+Example:
+5drfo01pgq88
+curl --request POST \
+  --url https://uexswap.com/api/partners/swap/initiate-crypto-to-crypto \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "send_amount": 1,
+  "from_currency": "BTC",
+  "base_currency_chain_id": "BTC",
+  "to_currency": "USDT",
+  "quote_currency_chain_id": "TRX",
+  "userWallet": "TQ3LqkLj4FVq7ZQf8uqJHfEgF7rHjsq2KE",
+  "receive_tag": null,
+  "extend": {
+    "ref_code": "5drfo01pgq88"
+  }
+}'
+{
+  "success": true,
+  "data": {
+    "orderId": "xaAkVZUkI0pE",
+    "depositAddress": "1FkccfHWhUwdwUAtY7AVEypnM53K17H51t",
+    "baseCurrencyAmount": "1",
+    "depositTag": null,
+    "quoteCurrencyAmount": "106578.762635",
+    "recipientAddress": "TQ3LqkLj4FVq7ZQf8uqJHfEgF7rHjsq2KE",
+    "baseCurrency": {
+      "chainName": "BTC",
+      "currencyId": "BTC",
+      "currencyName": "BTC"
+    },
+    "quoteCurrency": {
+      "chainName": "TRX",
+      "currencyId": "USDT",
+      "currencyName": "USDT",
+      "receive_network": "TRC20"
+    },
+    "provider_id": "076a37cfef8908618e7e6e8c9a8be66a",
+    "ref_code": "5drfo01pgq88"
+  }
+}
+UEX
+
+Home
+UEX
+APIS
+Sign in
+powered by Stoplight

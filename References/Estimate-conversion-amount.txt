@@ -1,0 +1,127 @@
+https://uex-us.stoplight.io/docs/uex/lr6taiunlcc15-estimate-conversion-amount
+
+
+Stoplight logo
+
+Like what you see? Create your own free Stoplight workspace to start documenting and designing APIs today.
+
+Create a Workspace
+
+Estimate conversion amount
+POST
+https://uexswap.com/api/partners/estimate
+Calculates an estimated exchange amount for a given currency pair and send amount. Useful for displaying rates before performing a swap.
+Request
+
+Body
+
+
+
+application/json
+
+Object containing send/receive currencies (or tokens), their networks, and the amount to estimate conversion for.
+
+Different examples
+
+
+The system has ready-made examples – each one shows a specific way to work with the API.
+
+A request for each example
+
+
+Every example has its own request with unique parameters and results. For example:
+
+Crypto-to-Crypto – exchange Crypto to Crypto,
+Crypto-to-Cardano – exchange Crypto to Cardano tokens,
+Cardano-to-Crypto – exchange Cardano tokens to Crypto,
+Cardano-to-Cardano – exchange within the Cardano network.
+Easy switching
+
+
+On the right side, you can click through different examples – the request updates instantly for the selected case.
+send
+string
+Code of the currency/token you want to send (e.g., BTC).
+network
+string
+Network of the sending currency (e.g., BTC, ERC20, TRC20).
+receive
+string
+Code of the currency/token you want to receive (e.g., ADA
+receive_network
+string
+Network of the receiving currency (e.g., ADA, BEP20
+amount
+number
+Amount of the sending currency to convert.
+Responses
+
+200
+Estimated conversion retrieved successfully.
+Body
+
+
+
+application/json
+
+responses
+/
+200
+rate
+string
+Estimated exchange rate (receive per 1 send).
+convert
+string
+Estimated amount of the receiving currency for the requested amount.
+
+data
+object
+provider
+string
+Unique provider identifier used for the estimation.
+rate
+string
+Exchange rate from this provider (same as top-level rate).
+min
+string
+Minimum send amount supported for this pair.
+max
+string
+Maximum send amount supported for this pair.
+convert
+string
+Estimated conversion result for the given amount.
+fee
+string
+Network/transaction fee charged for the exchange.
+curl --request POST \
+  --url https://uexswap.com/api/partners/estimate \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "send": "BTC",
+  "network": "BTC",
+  "receive": "ADA",
+  "receive_network": "ADA",
+  "amount": 0.1
+}'
+
+{
+  "rate": "0.000007242411",
+  "convert": "0.00046864",
+  "data": {
+    "provider": "076a37cfef8908618e7e6e8c9a8be66a",
+    "rate": "0.000007242411",
+    "min": "58.85",
+    "max": "7272606",
+    "convert": "0.00046864",
+    "fee": "0.00003"
+  }
+}
+UEX
+
+Home
+UEX
+APIS
+Sign in
+powered by Stoplight

@@ -1,0 +1,1402 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "UEX API v1.0",
+    "description": "UEX API Integration Guide\n\nUEX provides a secure, all-in-one cryptocurrency trading platform. This document guides partners and merchants in integrating with the UEX API to perform crypto swaps, retrieve currency data, generate payment links, and more. The UEX API uses JSON over HTTPS. All requests should be made to the base URL: https://uexswap.com or https://uex.us. This guide covers authentication, endpoint usage, sample requests/responses, and relevant operational details.\n\n\n## Introduction\n\nThe UEX API enables programmatic access to the UEX cryptocurrency exchange features. With this API, you can:\n\n- Initiate crypto-to-crypto or Cardano token swaps,\n\n- Retrieve order status and swap details,\n\n- Fetch supported currency lists and perform conversion estimations,\n\n- Generate payment URLs for merchant checkout.\n\nThis guide explains each API endpoint, the required parameters, and the expected responses. It is intended for developers building applications or integrations with the UEX platform. Use the latest API version and follow best practices for secure and efficient integration.\n\n\n## Rate Limiting\n\nAs of now, the UEX API does not publicly specify strict rate limits. If rate limiting is implemented, it will be communicated via headers or documentation. As a best practice, implement exponential backoff and error handling for HTTP 429 (Too Many Requests) in case of request throttling.\n\n## KYC & Referral Program Summary\n\nUEX offers a referral rewards program. To fully participate, you must complete KYC (Know Your Customer) verification and generate a referral code. Key steps:\n\n**Generate Referral Code:**\n\n  1. Log in to your UEX account at https://uex.us/.\n\n  2. Navigate to the Referrals page.\n\n  3. Click “Generate Referral Link.” For example, you may see a link like https://uex.us/?ref=5drfo01pgq88. Your referral code is the part after ref= (e.g. 5drfo01pgq88).\n\n**Complete KYC Verification:**\n\nTo use the API and referral program, complete identity verification:\n\n1. Go to https://uex.us/profile/personal-id.\n\n2. Select your ID type (e.g., Passport) and enter the required details.\n\n3. Upload a clear photo of your identification document.\n\n4. Submit and wait for approval. Once verified, you are eligible for referral rewards.\n\n**Referral Rewards:**\n\n- For each swap made by a user using your code, you earn a percentage commission. For example, if a referred user exchanges 1 BTC when BTC=100,000 USDT, a 0.19% fee yields 190 USDT to you.\n\n- **Cardano (ADA) Swap Bonus**: For every Cardano-to-Cardano swap by a referral, you receive 0.5 ADA fixed reward.\n\n- **Check Earnings**: Log in and visit the Referrals page (Rewards section) to view your accrued bonuses.\n\nImportant: Always apply the referral code in your API requests (where supported) to ensure you receive credit. Ensure that KYC is approved for both your account and any referred users to qualify for rewards.\n",
+    "termsOfService": "",
+    "contact": {
+      "email": "support@uex.us",
+      "name": "",
+      "url": ""
+    }
+  },
+  "paths": {
+    "/api/partners/swap/initiate-crypto-to-crypto": {
+      "post": {
+        "tags": [
+          "uexswap.com"
+        ],
+        "summary": "Crypto to Crypto",
+        "description": "Initiates a new cryptocurrency-to-cryptocurrency swap.\n\nValidates all provided inputs before creating the order.\n\nNote: Before using this API, please review the usage guidelines and instructions at:\nhttps://uex-us.stoplight.io/docs/uex-us/branches/main/4qv65b3k0kxfm-uex-us-swap",
+        "operationId": "initiateCryptoToCryptoSwap",
+        "requestBody": {
+          "description": "Creates a new cryptocurrency-to-cryptocurrency swap order. The system validates all inputs and, if valid, returns details including the deposit address where the base currency should be sent.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "send_amount": {
+                    "type": "number",
+                    "description": "Amount of the base cryptocurrency to swap.",
+                    "format": "float",
+                    "example": 1
+                  },
+                  "from_currency": {
+                    "type": "string",
+                    "description": "Symbol/code of the source cryptocurrency (base currency) (e.g., \"BTC\").",
+                    "example": "BTC"
+                  },
+                  "base_currency_chain_id": {
+                    "type": "string",
+                    "description": "Blockchain network name of the base currency (e.g., \"BTC\" or network-specific code).",
+                    "example": "BTC"
+                  },
+                  "to_currency": {
+                    "type": "string",
+                    "description": "Symbol/code of the target cryptocurrency to receive (quote currency).",
+                    "example": "USDT"
+                  },
+                  "quote_currency_chain_id": {
+                    "type": "string",
+                    "description": "Blockchain network name of the quote currency.",
+                    "example": "TRX"
+                  },
+                  "userWallet": {
+                    "type": "string",
+                    "description": "The wallet address where the swapped funds (quote currency) should be sent.",
+                    "example": "TQ3LqkLj4FVq7ZQf8uqJHfEgF7rHjsq2KE"
+                  },
+                  "receive_tag": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Optional memo/tag for destination (used by some blockchains like XRP, XLM).",
+                    "example": null
+                  },
+                  "extend": {
+                    "type": "object",
+                    "description": "Additional metadata.",
+                    "properties": {
+                      "ref_code": {
+                        "type": "string",
+                        "description": "ref_code:\nRequired referral code to credit partners or affiliates.\nTo get your referral code:\n\nLog in at https://uex.us/\n\nGo to the Referrals page https://uex.us/referrals\n\nGenerate your referral link, for example:\nhttps://uex.us/?ref=5drfo01pgq88\n\nThe referral code is the part after ref=, e.g. 5drfo01pgq88",
+                        "example": "5drfo01pgq88"
+                      }
+                    },
+                    "required": [
+                      "ref_code"
+                    ]
+                  }
+                },
+                "required": [
+                  "send_amount",
+                  "from_currency",
+                  "base_currency_chain_id",
+                  "to_currency",
+                  "quote_currency_chain_id",
+                  "userWallet",
+                  "extend"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Swap initiated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Indicates if the request was successfully processed.\t",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "Contains detailed information about the created order.\t",
+                      "properties": {
+                        "orderId": {
+                          "type": "string",
+                          "description": "Unique identifier of the created order.\t",
+                          "example": "xaAkVZUkI0pE"
+                        },
+                        "depositAddress": {
+                          "type": "string",
+                          "description": "Blockchain address where you should send the base currency.\t",
+                          "example": "1FkccfHWhUwdwUAtY7AVEypnM53K17H51t"
+                        },
+                        "baseCurrencyAmount": {
+                          "type": "string",
+                          "description": "Amount of the base currency to swap.\t",
+                          "example": "1"
+                        },
+                        "depositTag": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Tag or memo for the deposit address (used by some blockchains). Can be null.\t",
+                          "example": null
+                        },
+                        "quoteCurrencyAmount": {
+                          "type": "string",
+                          "description": "Amount of the quote currency the user will receive.\t",
+                          "example": "106578.762635"
+                        },
+                        "recipientAddress": {
+                          "type": "string",
+                          "description": "Address where the swapped funds will be sent.\t",
+                          "example": "TQ3LqkLj4FVq7ZQf8uqJHfEgF7rHjsq2KE"
+                        },
+                        "baseCurrency": {
+                          "type": "object",
+                          "description": "Details about the base currency.\t",
+                          "properties": {
+                            "chainName": {
+                              "type": "string",
+                              "description": "Blockchain network of the base currency.\t",
+                              "example": "BTC"
+                            },
+                            "currencyId": {
+                              "type": "string",
+                              "description": "Code of the base currency.\t",
+                              "example": "BTC"
+                            },
+                            "currencyName": {
+                              "type": "string",
+                              "description": "Display name of the base currency.\t",
+                              "example": "BTC"
+                            }
+                          }
+                        },
+                        "quoteCurrency": {
+                          "type": "object",
+                          "description": "Details about the quote currency.\t",
+                          "properties": {
+                            "chainName": {
+                              "type": "string",
+                              "description": "Blockchain network of the quote currency.\t",
+                              "example": "TRX"
+                            },
+                            "currencyId": {
+                              "type": "string",
+                              "description": "Code of the quote currency.\t",
+                              "example": "USDT"
+                            },
+                            "currencyName": {
+                              "type": "string",
+                              "description": "Display name of the quote currency.\t",
+                              "example": "USDT"
+                            },
+                            "receive_network": {
+                              "type": "string",
+                              "description": "Network used for receiving the quote currency (e.g., TRC20, ERC20).\t",
+                              "example": "TRC20"
+                            }
+                          }
+                        },
+                        "provider_id": {
+                          "type": "string",
+                          "description": "Identifier of the service provider handling this order.\t",
+                          "example": "076a37cfef8908618e7e6e8c9a8be66a"
+                        },
+                        "ref_code": {
+                          "type": "string",
+                          "description": "Referral code associated with the order.",
+                          "example": "5drfo01pgq88"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or referral code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Invalid referral code"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Referral code invalid or user passport not approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Referral code is wrong or empty.Your api is blocked"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://uexswap.com",
+            "description": "main"
+          }
+        ]
+      }
+    },
+    "/api/partners/swap/initiate-cardano-to-cardano": {
+      "post": {
+        "tags": [
+          "uexswap.com"
+        ],
+        "summary": "Cardano to Cardano",
+        "description": "Initiates a swap order on the Cardano blockchain and returns an unsigned transaction (in CBOR format) for signing. All inputs are validated before creation. The returned CBOR data must be signed by the user's wallet to complete the swap.",
+        "operationId": "makeTokenOrder",
+        "requestBody": {
+          "description": "Payload to create a new token order, including all necessary details such as token type, amount, recipient address, and any relevant metadata required to initiate the order.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "buyer_address": {
+                    "type": "string",
+                    "description": "  Blockchain address of the buyer who initiates the swap or transaction.\n    Typically, this is the same as the recipient_address unless you want to\n    send the swapped tokens to a different wallet.",
+                    "example": "addr1qx8wcywmx3yl9pm7zv8n70fyyyj3974j5fpx3dmkgrjr5r86feva6e0vwcu204vs9l68t6um5puaalmhf82vsw3sax0sk5vjtq"
+                  },
+                  "recipient_address": {
+                    "type": "string",
+                    "description": "Destination blockchain address where the output tokens will be sent after\nthe swap. Usually, it is the same as the buyer_address unless\nyou want to send tokens to a different wallet.",
+                    "example": "addr1vxur7e6mrayscnprz3thfztgf0qhjxaxh96trvy8vyjl6jg3ehh7k"
+                  },
+                  "token_in": {
+                    "type": "string",
+                    "description": "Token ID or asset identifier representing the asset to swap from.\nUse an empty string (\"\") to specify ADA, the native Cardano cryptocurrency."
+                  },
+                  "token_out": {
+                    "type": "string",
+                    "description": "Token ID or asset identifier representing the asset the buyer wants to swap to.\nUse an empty string (\"\") to specify ADA, the native Cardano token.",
+                    "example": "a00fdf4fb9ab6c8c2bd1533a2f14855edf12aed5ecbf96d4b5f5b9394334"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "Amount of token_in (or ADA if token_in is empty) that the buyer wants to swap.",
+                    "format": "float",
+                    "example": 1
+                  },
+                  "slippage": {
+                    "type": "number",
+                    "description": "Maximum acceptable slippage percentage to protect from price volatility during swap (e.g., 5%).",
+                    "format": "float",
+                    "example": 5
+                  },
+                  "blacklisted_dexes": {
+                    "type": "array",
+                    "description": " List of decentralized exchanges (DEXes) to exclude from routing during the swap.\n By default, the following DEXes are excluded: CERRA, MUESLISWAP, GENIUS, SNEKFUN, SPECTRUM, AXO.\n You can specify additional DEXes to exclude by adding them to this list.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "CERRA",
+                      "MUESLISWAP",
+                      "GENIUS",
+                      "SNEKFUN",
+                      "SPECTRUM",
+                      "AXO"
+                    ]
+                  },
+                  "available_user_ada": {
+                    "type": "number",
+                    "description": "Amount of ADA available on the user's wallet for fees or swap.",
+                    "format": "float",
+                    "example": 15
+                  },
+                  "ref_code": {
+                    "type": "string",
+                    "description": "ref_code:\n Referral code to credit partners or affiliates.\nTo get your referral code:\n\nLog in at https://uex.us/\n\nGo to the Referrals page https://uex.us/referrals\n\nGenerate your referral link, for example:\nhttps://uex.us/?ref=5drfo01pgq88\n\nThe referral code is the part after ref=, e.g. 5drfo01pgq88",
+                    "example": "5drfo01pgq88"
+                  }
+                },
+                "required": [
+                  "buyer_address",
+                  "recipient_address",
+                  "token_in",
+                  "token_out",
+                  "amount",
+                  "slippage",
+                  "blacklisted_dexes",
+                  "available_user_ada",
+                  "ref_code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order created and CBOR generated successfully. Please review the transaction details carefully and sign the transaction on the frontend to complete the process.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean",
+                      "description": "Overall success status of the order creation process.",
+                      "example": true
+                    },
+                    "cbor": {
+                      "type": "object",
+                      "description": "ontains data related to the CBOR-encoded transaction.",
+                      "properties": {
+                        "status": {
+                          "type": "boolean",
+                          "description": "Status of the CBOR generation step.",
+                          "example": true
+                        },
+                        "cbor": {
+                          "type": "string",
+                          "description": "CBOR-encoded transaction data (hex or base64 string) to be signed by the frontend client.",
+                          "example": "84a60082825820ffbd05b32008eec95edfa8d4a76a2df687f5a51165bfeacc2884ec3fcd919bf202825820cc97e57c3159449ec4f395277eec9c50e088ca60393a6da9be2b37079d0aa807030183a300583911c3e28c36c3447315ba5a56f33da6a6ddc1770a876a8d9f0cb3a97c4cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99f011a00387520028201d81859012ed8799fd8799f581c8eec11db3449f2877e130f3f3d24212512fab2a24268b77640e43a0cffd8799fd8799f581cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99fffffffffd87980d8799fd8799f581cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99fffffffffd87980d8799f581cf5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c5820848e0c1ff4243da598bee04bdd1eb016d741d17f0cc82e535cae1bc0150ea1f2ffd8799fd87a80d8799f1a000f4240ff190d4dd87980ff1a000aae60d87a80ff82583901a0adf3d71f77eef162098726fe9723a5b99b4a4e6a2a1b80010660982a4d6ec982ac5dffbfa35ac40bf45ad84ea34857878fd08d5784ddc71a000f4240825839018eec11db3449f2877e130f3f3d24212512fab2a24268b77640e43a0cfa4e59dd65ec7638a7d5902ff475eb9ba079deff7749d4c83a30e99f1a000f7752021a0002e321031a09813a05075820928951e37c00b69a185f62628e04f984dc7813be83897bc8de67f1c8bb623c55081a09812bf5a0f5a11902a2a1636d7367816b5545584150502053776170"
+                        },
+                        "txHash": {
+                          "type": "string",
+                          "description": "Hash of the blockchain transaction associated with this order, used for verification.\n\n**Note: At the moment of transaction creation, this txHash does not yet exist on the blockchain.\nIt will appear only after the CBOR is signed using a web3 wallet and the transaction is broadcast.**",
+                          "example": "56f59d11a4ed048dcc8907308ddc6459939a9bb7ff45495069c993cb1e719ac3"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Informational message prompting the user to sign the transaction on the frontend.",
+                      "example": "Order created and CBOR generated successfully. Please sign the transaction on the frontend."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or max slippage exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Slippage of this trade is more than the max slippage chosen. Please decrease the amount or increase the max slippage in the settings below."
+                    },
+                    "details": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Referral code invalid or user passport not approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Referral code is wrong or empty.Your api is blocked"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://uexswap.com",
+            "description": "main"
+          }
+        ]
+      }
+    },
+    "/api/partners/order-show": {
+      "post": {
+        "tags": [
+          "uexswap.com"
+        ],
+        "summary": "Order info by ID",
+        "description": "Fetches the full details and current status of an existing swap order by its ID. Use this to monitor swap progress.",
+        "operationId": "showOrderAPI",
+        "requestBody": {
+          "description": "Order ID to fetch",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "string",
+                    "description": "Unique identifier of the order (provided when the order was created).",
+                    "example": "tmkI1bXJeOs8"
+                  }
+                },
+                "required": [
+                  "orderId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": " Retrieves full order information along with the current status from external systems",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "order": {
+                          "type": "object",
+                          "properties": {
+                            "orderId": {
+                              "type": "string",
+                              "description": "Unique identifier of the order. Used for querying and tracking the order status.",
+                              "example": "tmkI1bXJeOs8"
+                            },
+                            "depositAddress": {
+                              "type": "string",
+                              "description": "Blockchain address where the user must send funds to initiate the swap.",
+                              "example": "addr1v8vedqsrdrhkd0uncm83tfhy3yyr0kxudp3elce9jcgzseg77cypl"
+                            },
+                            "baseCurrencyAmount": {
+                              "type": "string",
+                              "description": "Amount of the base currency the user sends.",
+                              "example": "50"
+                            },
+                            "quoteCurrencyAmount": {
+                              "type": "string",
+                              "description": "Amount of the quote currency the user will receive.\n",
+                              "example": "0.01351345"
+                            },
+                            "recipientAddress": {
+                              "type": "string",
+                              "description": "Destination address where the user wants to receive the output funds.",
+                              "example": "0xeF2B8bd111413EE39ad9Ee45852023C1e822d90a"
+                            },
+                            "baseCurrency": {
+                              "type": "object",
+                              "description": "Information about the base (input) currency.\n",
+                              "properties": {
+                                "chainName": {
+                                  "type": "string",
+                                  "description": "Name of the blockchain network for the base currency (e.g., ADA (CARDANO)).",
+                                  "example": "ADA"
+                                },
+                                "currencyId": {
+                                  "type": "string",
+                                  "description": "Code of the base currency (e.g., ADA).\n",
+                                  "example": "ADA"
+                                },
+                                "currencyName": {
+                                  "type": "string",
+                                  "description": "Display name of the base currency.\n",
+                                  "example": "ADA"
+                                }
+                              }
+                            },
+                            "quoteCurrency": {
+                              "type": "object",
+                              "description": "Information about the quote (output) currency.\n",
+                              "properties": {
+                                "chainName": {
+                                  "type": "string",
+                                  "description": "Name of the blockchain network for the quote currency (e.g., ETH).",
+                                  "example": "ETH"
+                                },
+                                "currencyId": {
+                                  "type": "string",
+                                  "description": "Code of the quote currency (e.g., ETH).\n",
+                                  "example": "ETH"
+                                },
+                                "currencyName": {
+                                  "type": "string",
+                                  "description": "Display name of the quote currency.\n",
+                                  "example": "ETH"
+                                }
+                              }
+                            },
+                            "qrCode": {
+                              "type": "string",
+                              "description": "A link to a QR code image representing the deposit address. Can be scanned by a crypto wallet.",
+                              "example": "https://quickchart.io/qr?chs=128x128&text=addr1v8vedqsrdrhkd0uncm83tfhy3yyr0kxudp3elce9jcgzseg77cypl"
+                            }
+                          }
+                        },
+                        "external_status": {
+                          "type": "string",
+                          "description": "The status can be one of the following: \"Awaiting Deposit\" — waiting for the user to deposit funds; \"Confirming Deposit\" — deposit received and awaiting blockchain confirmations; \"Exchanging\" — funds are being swapped at the current rate; \"Sending\" — the swapped funds are being sent to the recipient; \"Complete\" — swap successfully completed and funds delivered; \"Refund\" — funds have been returned to the sender due to an error; \"Failed\" — swap failed due to an error; \"Volatility Protection\" — swap is paused awaiting confirmation of a new rate due to market volatility; \"Action Request\" — additional user action is required (e.g., verification); \"Request Overdue\" — the time allowed for user action has expired.",
+                          "example": "Failed"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing order ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Order ID is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch order status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Failed to fetch order status"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Detailed exception message"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://uexswap.com",
+            "description": "main"
+          }
+        ]
+      }
+    },
+    "/api/merchant/oauth2/token": {
+      "post": {
+        "tags": [
+          "UEX.US Merchant"
+        ],
+        "summary": "Get oauth2 token for create payment",
+        "description": "All merchant-related endpoints require OAuth2 authentication. To authenticate, call the OAuth2 Token endpoint with your client credentials (client ID and secret). The endpoint returns a Bearer access token. Include this token in the Authorization header (e.g., Authorization: Bearer {token}) of subsequent requests. \r\n",
+        "operationId": "post-api-merchant-oauth2-token",
+        "requestBody": {
+          "description": "Generates an OAuth2 access token for merchant operations (such as creating payments). Use your client credentials to obtain a token for authenticated requests.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "order": {
+                    "type": "string"
+                  },
+                  "item_name": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "string"
+                  },
+                  "success_url": {
+                    "type": "string"
+                  },
+                  "failure_url": {
+                    "type": "string"
+                  }
+                }
+              },
+              "examples": {
+                "Example 1": {
+                  "value": {
+                    "client_id": "0gSUdRh7aQC50UYLwvDVWESP1VVAW2",
+                    "secret_key": "SBOiy5u1xiMSucz3mEAk6gsCcqc1aVXk2uVXvC1MWLClSSTz1ALmkdENTiPGQDMl6etXa3YObOG8qj1122QapVOkaTsytgwaSrjA"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "access_token": {
+                          "type": "string",
+                          "example": "eyJ0eXAiOiJKV1QiL2JhbGciOiJIUzI1Nia9.eyJpc3MiOiJodHRwczovL3VleC51cy9hcGkvbWVyY2hhbnQvb2F1dGgyL3Rva2VuIiwiaWF0IjoxNzUyMTQzOTQ1LCJleHAiOjE3NTIxNDQ1NDUsIm5iZiI6MTc1MjE0Mzk0NSwianRpIjoiZmlUYXI3MDFCMkZ1YnZYaSIsInN1YiI6IjIwIiwicHJ2IjoiYzQ0YmYwZjY5NzVlY2MyNTMzNTFkNTVhNzU1ZTNkY2E3MzVlN2RhNSJ9._0RLWfYHCVTrzYheJIAa9TONZvsosyWwjZ3b-2DKjcU"
+                        }
+                      }
+                    }
+                  },
+                  "x-examples": {
+                    "Example 1": {
+                      "success": true,
+                      "data": {
+                        "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3VleC51cy9hcGkvbWVyY2hhbnQvb2F1dGgyL3Rva2VuIiwiaWF0IjoxNzUyMTQzOTQ1LCJleHAiOjE3NTIxNDQ1NDUsIm5iZiI6MTc1MjE0Mzk0NSwianRpIjoiZmlUYXI3MDFCMkZ1YnZYaSIsInN1YiI6IjIwIiwicHJ2IjoiYzQ0YmYwZjY5NzVlY2MyNTMzNTFkNTVhNzU1ZTNkY2E3MzVlN2RhNSJ9._0RLWfYHCVTrzYheJIAa9TONZvsosyWwjZ3b-2DKjcU"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://uex.us",
+            "description": "main"
+          }
+        ]
+      }
+    },
+    "/api/merchant/generate-payment-url": {
+      "post": {
+        "tags": [
+          "UEX.US Merchant"
+        ],
+        "summary": "Сreate payment link",
+        "description": "Creates a payment link (URL) for a specified order or product. This can be embedded on a merchant website to redirect customers to a UEX-hosted payment page.",
+        "operationId": "post-api-merchant-generate-payment-url",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer {{token}}",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "order": {
+                    "type": "string",
+                    "example": "1809001"
+                  },
+                  "item_name": {
+                    "type": "string",
+                    "example": "Iphone 16 pro max 256GB"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "example": "4"
+                  },
+                  "success_url": {
+                    "type": "string",
+                    "example": "https://yourwebsite.com/order/1809001/success"
+                  },
+                  "failure_url": {
+                    "type": "string",
+                    "example": "https://yourwebsite.com/order/1809001/failed"
+                  }
+                },
+                "required": [
+                  "order",
+                  "item_name",
+                  "amount",
+                  "success_url",
+                  "failure_url"
+                ],
+                "x-examples": {
+                  "Example 1": {
+                    "order": "1809001",
+                    "item_name": "Iphone 16 pro max 256GB",
+                    "amount": "4",
+                    "success_url": "https://yourwebsite.com/order/1809001/success",
+                    "failure_url": "https://yourwebsite.com/order/1809001/failed"
+                  }
+                }
+              },
+              "examples": {
+                "Example 1": {
+                  "value": {
+                    "order": "1809001",
+                    "item_name": "Iphone 16 pro max 256GB",
+                    "amount": "4",
+                    "success_url": "https://yourwebsite.com/order/1809001/success",
+                    "failure_url": "https://yourwebsite.com/order/1809001/failed"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "order": {
+                      "type": "string"
+                    },
+                    "item_name": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "success_url": {
+                      "type": "string"
+                    },
+                    "failure_url": {
+                      "type": "string"
+                    }
+                  },
+                  "x-examples": {
+                    "Example 1": {
+                      "order": "1809001",
+                      "item_name": "Iphone 16 pro max 256GB",
+                      "amount": "4",
+                      "success_url": "https://yourwebsite.com/order/1809001/success",
+                      "failure_url": "https://yourwebsite.com/order/1809001/failed"
+                    }
+                  }
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "success": true,
+                      "data": {
+                        "redirect_url": "https://uex.us/payment/select-gateway?payload=eyJpdiI6Ijg3b2VsRnJhaXVxVGtjRXJvRnJGb0E9PSIsInZhbHVlIjoiakpLbytaeDhsOXEyNXBOeXBhdko1bGjdfb657zklXpQSXRxb1RuUDVKYmw4c2hMMFY1bU9tVEwyNlpWVTY2dXBLWXJaRk9YWHZvL29GUDRWV01ERE1YbUpEM2c3elNxUGpqZDMyakM5L2pYTUp4ZTJnY0ZkWFpzZkJLeExyY3laV0FHUzlQMDl5Zi82VE1QZnMrV0Zldjk3NTBDL2xITGxYa2lJcUZnRUhvdi9HZEdBU3d3d0JJay90TXJNQitURlBkZzFCM3ZUZUZvQXRZZmV1SE5Yd2twcTNXQUZhd1lXTjhaNkQ5a1pGNElrMzd1Y0VvVkV4a1JwbkJQdlJLMjdTQldSQkszMVNYV2hoMFpUSFl5UTBVcmNqaEc5RWRVdnFWRTJXK2hGMFUxN0hTOWNkaU9xNTAzMWVKVDVFTnZQVENpQlBBRm56b0tCVDBxZWRiQ29mdFJwVFBHdXFlSkw1QkZtejlMcmkyQ0U4ZHNrcTJadXJJZFgjsn3jfNGUvdzhGIiwibWFjIjoiNmI4NzlhZmZiMTFkMGUwMWZlZWQ1ZDQ3NjMxNDhiMGY4NjhkNTVmNDk3MTU0ZDkwFh1scHK43d12hMjEwYzU4YSIsFasdZyI6IiJ9"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://uex.us",
+            "description": "main"
+          }
+        ]
+      }
+    },
+    "/api/partners/get-currencies": {
+      "get": {
+        "tags": [
+          "uexswap.com"
+        ],
+        "summary": "Returns a list of supported currencies (with networks) and Cardano tokens",
+        "description": "Retrieves the full list of supported cryptocurrencies and Cardano tokens (including networks). Useful for populating currency selectors and ensuring valid codes.\n\n*Tip: The currencies array contains objects with fields like id, name, code, and supported networks. The cardano_tokens list provides metadata for Cardano-native assets.*",
+        "operationId": "get-currencies-for-partners",
+        "responses": {
+          "200": {
+            "description": "Obtaining a list of all coins and tokens for use in exchange\r\n\r\nAll currencies provided in the response can be used for calculation and exchange.\r\n\r\nIn the response, cryptocurrencies and cardano_tokens are separated.\r\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "description": "The response data array of objects\n\n",
+                      "properties": {
+                        "currencies": {
+                          "type": "array",
+                          "description": "Currency ticker BTC, ETH etc.\n\n",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "description": "Unique identifier of the currency."
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "Currency name Bitcoin, Ethereum etc.\n\n"
+                              },
+                              "code": {
+                                "type": "string",
+                                "description": "rading code (ticker), e.g., 1000SATS"
+                              },
+                              "icon": {
+                                "type": "string",
+                                "description": "Path to the currency icon."
+                              },
+                              "slug": {
+                                "type": "string",
+                                "description": "Short alias of the currency, usually for URLs or internal references."
+                              },
+                              "additions": {
+                                "type": "array",
+                                "description": "Extra attributes or custom fields.",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "network": {
+                                "type": "array",
+                                "description": "List of supported networks for this currency:",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "description": "Network name (ORDIBTC)."
+                                    },
+                                    "id": {
+                                      "type": "integer",
+                                      "description": "Network ID."
+                                    },
+                                    "network": {
+                                      "type": "string",
+                                      "description": "Internal network identifier."
+                                    },
+                                    "has_tag": {
+                                      "type": "integer",
+                                      "description": "Indicates whether a memo/tag is required for transfers (0 = no, 1 = yes)."
+                                    },
+                                    "slug": {
+                                      "type": "string",
+                                      "description": "Network alias."
+                                    },
+                                    "contract": {
+                                      "type": "string",
+                                      "description": "Contract or token identifier (for EVM or similar networks)."
+                                    },
+                                    "default": {
+                                      "type": "integer",
+                                      "description": "Marks if this is the default network (1 = yes)."
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "cardano_tokens": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "ticker": {
+                                "type": "string",
+                                "description": "Token ticker (e.g., SKULL)."
+                              },
+                              "token_policy": {
+                                "type": "string",
+                                "description": "Cardano policy ID of the token."
+                              },
+                              "tokenId": {
+                                "type": "string",
+                                "description": "Unique token identifier in the Cardano network."
+                              },
+                              "img": {
+                                "type": "string",
+                                "description": "Path to the token image."
+                              },
+                              "is_verified": {
+                                "type": "boolean",
+                                "description": "Indicates whether the token is verified (true / false)."
+                              },
+                              "decimals": {
+                                "type": "integer",
+                                "description": "Number of decimals for the token."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "x-examples": {
+                    "Example 1": {
+                      "data": {
+                        "currencies": [
+                          {
+                            "id": 1,
+                            "name": "SATS",
+                            "code": "1000SATS",
+                            "slug": "sats",
+                            "icon": "/uploads/coins/icons/1000SATS.svg",
+                            "additions": [
+                              "string"
+                            ],
+                            "network": [
+                              {
+                                "id": 1,
+                                "name": "ORDIBTC",
+                                "network": "ORDIBTC",
+                                "slug": "ordibtc",
+                                "has_tag": 0,
+                                "default": 1,
+                                "contract": "sats"
+                              }
+                            ]
+                          }
+                        ],
+                        "cardano_tokens": [
+                          {
+                            "ticker": "SKULL",
+                            "tokenId": "885742cd7e0dad321622b5d3ad186797bd50c44cbde8b48be1583fbd534b554c4c",
+                            "token_policy": "885742cd7e0dad321622b5d3ad186797bd50c44cbde8b48be1583fbd",
+                            "img": "cardano_tokens/885742cd7e0dad321622b5d3ad186797bd50c44cbde8b48be1583fbd534b554c4c.webp",
+                            "is_verified": true,
+                            "decimals": 0
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "data": {
+                        "currencies": [
+                          {
+                            "id": 1,
+                            "name": "SATS",
+                            "code": "1000SATS",
+                            "slug": "sats",
+                            "icon": "/uploads/coins/icons/1000SATS.svg",
+                            "additions": [
+                              "string"
+                            ],
+                            "network": [
+                              {
+                                "id": 1,
+                                "name": "ORDIBTC",
+                                "network": "ORDIBTC",
+                                "slug": "ordibtc",
+                                "has_tag": 0,
+                                "default": 1,
+                                "contract": "sats"
+                              }
+                            ]
+                          }
+                        ],
+                        "cardano_tokens": [
+                          {
+                            "ticker": "SKULL",
+                            "tokenId": "885742cd7e0dad321622b5d3ad186797bd50c44cbde8b48be1583fbd534b554c4c",
+                            "token_policy": "885742cd7e0dad321622b5d3ad186797bd50c44cbde8b48be1583fbd",
+                            "img": "cardano_tokens/885742cd7e0dad321622b5d3ad186797bd50c44cbde8b48be1583fbd534b554c4c.webp",
+                            "is_verified": true,
+                            "decimals": 0
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error. Please try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "x-examples": {
+                    "Example 1": {
+                      "error": "Failed to fetch currencies",
+                      "message": "Detailed exception message"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://uexswap.com",
+            "description": "main"
+          }
+        ]
+      }
+    },
+    "/api/partners/estimate": {
+      "post": {
+        "tags": [
+          "uexswap.com"
+        ],
+        "summary": "Estimate conversion amount",
+        "description": "Calculates an estimated exchange amount for a given currency pair and send amount. Useful for displaying rates before performing a swap.",
+        "operationId": "get-api-partners-estimate",
+        "requestBody": {
+          "description": "Object containing send/receive currencies (or tokens), their networks, and the amount to estimate conversion for.\n\n\n#### Different examples\nThe system has ready-made examples – each one shows a specific way \nto work with the API.\n\n#### A request for each example\nEvery example has its own request with unique parameters and results.\nFor example:\n\n1. **Crypto-to-Crypto** – exchange Crypto to Crypto,\n\n2. **Crypto-to-Cardano** – exchange Crypto to Cardano tokens,\n\n3. **Cardano-to-Crypto** – exchange Cardano tokens to Crypto,\n\n4. **Cardano-to-Cardano** – exchange within the Cardano network.\n\n#### Easy switching\nOn the right side, you can click through different examples \n– the request updates instantly for the selected case.\n\n\n\n\n ",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "send": {
+                    "type": "string",
+                    "description": "Code of the currency/token you want to send (e.g., BTC)."
+                  },
+                  "network": {
+                    "type": "string",
+                    "description": "Network of the sending currency (e.g., BTC, ERC20, TRC20)."
+                  },
+                  "receive": {
+                    "type": "string",
+                    "description": "Code of the currency/token you want to receive (e.g., ADA"
+                  },
+                  "receive_network": {
+                    "type": "string",
+                    "description": "Network of the receiving currency (e.g., ADA, BEP20"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "Amount of the sending currency to convert."
+                  }
+                },
+                "x-examples": {
+                  "Example 1": {
+                    "send": "BTC",
+                    "network": "BTC",
+                    "receive": "ADA",
+                    "receive_network": "ADA",
+                    "amount": 0.1
+                  }
+                }
+              },
+              "examples": {
+                "Crypto-to-Crypto": {
+                  "value": {
+                    "send": "BTC",
+                    "network": "BTC",
+                    "receive": "ADA",
+                    "receive_network": "ADA",
+                    "amount": 0.1
+                  }
+                },
+                "Crypto-to-Cardano": {
+                  "value": {
+                    "send": "BTC",
+                    "network": "BTC",
+                    "receive": "a00fdf4fb9ab6c8c2bd1533a2f14855edf12aed5ecbf96d4b5f5b9394334",
+                    "receive_network": "ADA",
+                    "amount": 0.1
+                  }
+                },
+                "Cardano-to-Crypto": {
+                  "value": {
+                    "send": "a00fdf4fb9ab6c8c2bd1533a2f14855edf12aed5ecbf96d4b5f5b9394334",
+                    "network": "ADA",
+                    "receive": "BTC",
+                    "receive_network": "BTC",
+                    "amount": 0.1
+                  }
+                },
+                "Cardano-to-Cardano": {
+                  "value": {
+                    "send": "ADA",
+                    "network": "ADA",
+                    "receive": "a00fdf4fb9ab6c8c2bd1533a2f14855edf12aed5ecbf96d4b5f5b9394334",
+                    "receive_network": "ADA",
+                    "amount": 0.1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estimated conversion retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rate": {
+                      "type": "string",
+                      "description": "Estimated exchange rate (receive per 1 send)."
+                    },
+                    "convert": {
+                      "type": "string",
+                      "description": "Estimated amount of the receiving currency for the requested amount."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "provider": {
+                          "type": "string",
+                          "description": "Unique provider identifier used for the estimation."
+                        },
+                        "rate": {
+                          "type": "string",
+                          "description": "Exchange rate from this provider (same as top-level rate)."
+                        },
+                        "min": {
+                          "type": "string",
+                          "description": "Minimum send amount supported for this pair."
+                        },
+                        "max": {
+                          "type": "string",
+                          "description": "Maximum send amount supported for this pair."
+                        },
+                        "convert": {
+                          "type": "string",
+                          "description": "Estimated conversion result for the given amount."
+                        },
+                        "fee": {
+                          "type": "string",
+                          "description": "Network/transaction fee charged for the exchange."
+                        }
+                      }
+                    }
+                  },
+                  "x-examples": {
+                    "Example 1": {
+                      "rate": "0.000007242411",
+                      "convert": "0.00046864",
+                      "data": {
+                        "provider": "076a37cfef8908618e7e6e8c9a8be66a",
+                        "rate": "0.000007242411",
+                        "min": "58.85",
+                        "max": "7272606",
+                        "convert": "0.00046864",
+                        "fee": "0.00003"
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "Crypto-to-Crypto": {
+                    "value": {
+                      "rate": "0.000007242411",
+                      "convert": "0.00046864",
+                      "data": {
+                        "provider": "076a37cfef8908618e7e6e8c9a8be66a",
+                        "rate": "0.000007242411",
+                        "min": "58.85",
+                        "max": "7272606",
+                        "convert": "0.00046864",
+                        "fee": "0.00003"
+                      }
+                    }
+                  },
+                  "Crypto-to-Cardano": {
+                    "value": {
+                      "rate": "451531740",
+                      "convert": "45153174",
+                      "data": {
+                        "status": true,
+                        "minAda": 13.3,
+                        "price": 45153174,
+                        "price_with_slippage": 42895515,
+                        "splits": [
+                          {
+                            "dex": "MINSWAP",
+                            "amount_in": 177.8980045055035,
+                            "fee": 4,
+                            "price_impact": 34.12083967387906,
+                            "expected_output": 566853,
+                            "expected_output_without_slippage": 596687,
+                            "batcher_fee": 2,
+                            "deposits": 2,
+                            "pool_id": "64c84332705ee884c881219d380349b038e85afe77578ade923107ee1e36da2a"
+                          },
+                          {
+                            "dex": "SUNDAESWAPV3",
+                            "amount_in": 919.0306530023105,
+                            "fee": 3.28,
+                            "price_impact": 34.03371562914997,
+                            "expected_output": 2927651,
+                            "expected_output_without_slippage": 3081738,
+                            "batcher_fee": 1.28,
+                            "deposits": 2,
+                            "pool_id": "eab5cceea2d05b97c14eaaac3518717ab046c4b0c7a7c7024cfa4b5c"
+                          },
+                          {
+                            "dex": "VYFI",
+                            "amount_in": 471.45849349719333,
+                            "fee": 3.9,
+                            "price_impact": 32.798305361755645,
+                            "expected_output": 1474608,
+                            "expected_output_without_slippage": 1552219,
+                            "batcher_fee": 1.9,
+                            "deposits": 2,
+                            "pool_id": "VYFI"
+                          },
+                          {
+                            "dex": "MINSWAPV2",
+                            "amount_in": 10648.592642989654,
+                            "fee": 2.7,
+                            "price_impact": 31.648015418091045,
+                            "expected_output": 33296392,
+                            "expected_output_without_slippage": 35048834,
+                            "batcher_fee": 0.7,
+                            "deposits": 2,
+                            "pool_id": "848e0c1ff4243da598bee04bdd1eb016d741d17f0cc82e535cae1bc0150ea1f2"
+                          },
+                          {
+                            "dex": "SUNDAESWAP",
+                            "amount_in": 1484.9485560053356,
+                            "fee": 4.5,
+                            "price_impact": 31.36643506758349,
+                            "expected_output": 4630011,
+                            "expected_output_without_slippage": 4873696,
+                            "batcher_fee": 2.5,
+                            "deposits": 2,
+                            "pool_id": "1f02"
+                          }
+                        ],
+                        "slippage": 5,
+                        "batcher_fee": 8.379999999999999,
+                        "deposits": 10,
+                        "net_price_reverse": 3295.388272848472,
+                        "decimals_token": 0,
+                        "one_ada_to_token_rate": 0.000246
+                      }
+                    }
+                  },
+                  "Cardano-to-Crypto": {
+                    "value": {
+                      "rate": "0.00000000179897425",
+                      "convert": "0.0004681",
+                      "data": {
+                        "status": true,
+                        "minAda": 4.3,
+                        "price": 0.000025,
+                        "price_with_slippage": 0.000001,
+                        "splits": [
+                          {
+                            "dex": "MINSWAPV2",
+                            "amount_in": 0.1,
+                            "fee": 2.7,
+                            "price_impact": 9.795743214428578e-8,
+                            "price_impact_string": "0.0000000979574321443",
+                            "expected_output": 0.000001,
+                            "expected_output_without_slippage": 0.000025,
+                            "batcher_fee": 0.7,
+                            "deposits": 2,
+                            "pool_id": "848e0c1ff4243da598bee04bdd1eb016d741d17f0cc82e535cae1bc0150ea1f2"
+                          }
+                        ],
+                        "slippage": 5,
+                        "batcher_fee": 0.7,
+                        "deposits": 2,
+                        "net_price_reverse": 0.00025,
+                        "decimals_token": 6,
+                        "one_ada_to_token_rate": 0.000246
+                      }
+                    }
+                  },
+                  "Cardano-to-Cardano": {
+                    "value": {
+                      "rate": "3960",
+                      "convert": "396",
+                      "data": {
+                        "status": true,
+                        "minAda": 4.8,
+                        "price": 396,
+                        "price_with_slippage": 376,
+                        "splits": [
+                          {
+                            "dex": "SUNDAESWAP",
+                            "amount_in": 0.1,
+                            "fee": 4.5,
+                            "price_impact": 0.002788838356784866,
+                            "expected_output": 376,
+                            "expected_output_without_slippage": 396,
+                            "batcher_fee": 2.5,
+                            "deposits": 2,
+                            "pool_id": "1f02"
+                          }
+                        ],
+                        "slippage": 5,
+                        "batcher_fee": 2.5,
+                        "deposits": 2,
+                        "net_price_reverse": 3960,
+                        "decimals_token": 0,
+                        "one_ada_to_token_rate": 0.000246
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://uexswap.com",
+            "description": "main"
+          }
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "CryptoExchange",
+      "description": "CryptoExchange"
+    }
+  ],
+  "x-internal": false
+}

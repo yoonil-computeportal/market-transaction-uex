@@ -1,0 +1,68 @@
+# ==============================================================================
+# Development Environment - Example Variables
+# ==============================================================================
+#
+# INSTRUCTIONS:
+# 1. Copy this file to terraform.tfvars
+# 2. Update the values with your configuration
+# 3. Never commit terraform.tfvars to version control
+#
+# cp terraform.tfvars.example terraform.tfvars
+#
+# ==============================================================================
+
+# General Configuration
+project_name = "uex-payments"
+aws_region   = "us-east-1"
+owner        = "DevOps Team"
+cost_center  = "Engineering"
+
+# VPC Configuration
+vpc_cidr             = "10.0.0.0/16"
+availability_zones   = ["us-east-1a", "us-east-1b"]
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs_app  = ["10.0.11.0/24", "10.0.12.0/24"]
+private_subnet_cidrs_data = ["10.0.21.0/24", "10.0.22.0/24"]
+
+# Security: Restrict to your IP in production
+allowed_cidr_blocks = ["0.0.0.0/0"]
+
+# Database Configuration
+# Leave empty to auto-generate a secure password
+db_master_password = ""
+
+# UEX API Configuration
+# REQUIRED: Get from https://uex.us/referrals
+uex_referral_code = "5drfo01pgq88"  # CHANGE THIS
+
+# OPTIONAL: Merchant API credentials
+uex_client_id  = ""
+uex_secret_key = ""
+
+# Service Image Tags
+presentation_image_tag        = "latest"
+client_tier_image_tag         = "latest"
+management_tier_image_tag     = "latest"
+uex_backend_image_tag         = "latest"
+processing_tier_image_tag     = "latest"
+management_backend_image_tag  = "latest"
+
+# ALB Configuration
+# Create ACM certificate first: https://console.aws.amazon.com/acm/
+acm_certificate_arn = ""
+
+# Monitoring Configuration
+alert_email_addresses = [
+  # "devops@yourcompany.com",
+]
+
+# Route53 Configuration (Optional)
+create_route53_records = false
+domain_name            = ""
+
+# Tags
+tags = {
+  Team        = "Platform Engineering"
+  Application = "UEX Payment Processing"
+  Repository  = "github.com/your-org/uex-payments"
+}

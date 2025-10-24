@@ -1,0 +1,56 @@
+sequenceDiagram
+    actor Customer
+    participant WebApp
+    participant PaymentController
+    participant PaymentProcessingService
+    participant ExchangeRateService
+    participant UEXService
+    participant Database
+    participant UEX_API
+    actor Seller
+
+    Customer->>WebApp: Select crypto payment<br/>(BTC → USD)
+    WebApp->>PaymentController: POST /api/payments/process<br/>{amount: 100, client_currency: "BTC", seller_currency: "USD"}
+    
+    PaymentController->>PaymentProcessingService: processPayment()
+    
+    Note over PaymentProcessingService: Validate input parameters
+    
+    PaymentProcessingService->>ExchangeRateService: getExchangeRate(BTC, USD, amount)
+    ExchangeRateService->>UEXService: getCurrencies()
+    UEXService->>UEX_API: GET /api/partners/get-currencies
+    UEX_API-->>UEXService: {currencies: [...]}
+    UEXService-->>ExchangeRateService: Currency list
+    
+    ExchangeRateService->>UEXService: getEstimate(BTC, USD, amount)
+    UEXService->>UEX_API: POST /api/partners/estimate<br/>{from: "BTC", to: "USD", amount: "100"}
+    UEX_API-->>UEXService: {rate: 43000, to_amount: 4300000}
+    UEXService-->>ExchangeRateService: Rate data
+    ExchangeRateService-->>PaymentProcessingService: Exchange rate + fees
+    
+    Note over PaymentProcessingService: Calculate all fees<br/>(UEX + conversion + management)
+    
+    PaymentProcessingService->>Database: Create transaction record<br/>(status: pending)
+    Database-->>PaymentProcessingService: transaction_id
+    
+    PaymentProcessingService->>UEXService: initiateSwap(BTC, USD, amount, recipient_wallet)
+    UEXService->>UEX_API: POST /api/partners/swap/initiate-crypto-to-crypto<br/>{from: "BTC", to: "USD", amount: "100", referral_code: "YOUR_CODE"}
+    UEX_API-->>UEXService: {order_id: "UEX-123", deposit_address: "1A1z..."}
+    UEXService-->>PaymentProcessingService: Order details
+    
+    PaymentProcessingService->>Database: Update transaction<br/>(uex_order_id, deposit_address)
+    
+    PaymentProcessingService-->>PaymentController: Transaction created
+    PaymentController-->>WebApp: {transaction_id, deposit_address, qr_code, fees}
+    WebApp-->>Customer: Show deposit address + QR code
+    
+    Customer->>Customer: Send BTC to deposit address
+    
+    Note over UEX_API: Customer sends crypto<br/>UEX detects deposit<br/>UEX processes swap
+    
+    UEX_API->>PaymentController: Webhook: Order status update<br/>(status: Complete)
+    PaymentController->>PaymentProcessingService: updateTransactionStatus()
+    PaymentProcessingService->>Database: Update status to "completed"
+    PaymentProcessingService-->>Seller: Notification: Payment received
+    
+    Seller->>Seller: Receive USD payout

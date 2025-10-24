@@ -1,0 +1,88 @@
+https://uex-us.stoplight.io/docs/uex/euuil03jw14zv-returns-a-list-of-supported-currencies-with-networks-and-cardano-tokens
+
+
+Stoplight logo
+
+Like what you see? Create your own free Stoplight workspace to start documenting and designing APIs today.
+
+Create a Workspace
+
+Returns a list of supported currencies (with networks) and Cardano tokens
+GET
+https://uexswap.com/api/partners/get-currencies
+Retrieves the full list of supported cryptocurrencies and Cardano tokens (including networks). Useful for populating currency selectors and ensuring valid codes.
+
+Tip: The currencies array contains objects with fields like id, name, code, and supported networks. The cardano_tokens list provides metadata for Cardano-native assets.
+Responses
+
+200
+500
+Obtaining a list of all coins and tokens for use in exchange
+
+All currencies provided in the response can be used for calculation and exchange.
+
+In the response, cryptocurrencies and cardano_tokens are separated.
+Body
+
+
+
+application/json
+
+
+data
+object
+The response data array of objectsShow all...
+
+currencies
+array[object]
+Currency ticker BTC, ETH etc.Show all...
+
+cardano_tokens
+array[object]
+curl --request GET \
+  --url https://uexswap.com/api/partners/get-currencies \
+  --header 'Accept: application/json'
+{
+  "data": {
+    "currencies": [
+      {
+        "id": 1,
+        "name": "SATS",
+        "code": "1000SATS",
+        "slug": "sats",
+        "icon": "/uploads/coins/icons/1000SATS.svg",
+        "additions": [
+          "string"
+        ],
+        "network": [
+          {
+            "id": 1,
+            "name": "ORDIBTC",
+            "network": "ORDIBTC",
+            "slug": "ordibtc",
+            "has_tag": 0,
+            "default": 1,
+            "contract": "sats"
+          }
+        ]
+      }
+    ],
+    "cardano_tokens": [
+      {
+        "ticker": "SKULL",
+        "tokenId": "885742cd7e0dad321622b5d3ad186797bd50c44cbde8b48be1583fbd534b554c4c",
+        "token_policy": "885742cd7e0dad321622b5d3ad186797bd50c44cbde8b48be1583fbd",
+        "img": "cardano_tokens/885742cd7e0dad321622b5d3ad186797bd50c44cbde8b48be1583fbd534b554c4c.webp",
+        "is_verified": true,
+        "decimals": 0
+      }
+    ]
+  }
+}
+UEX
+
+Home
+UEX
+APIS
+Sign in
+powered by Stoplight

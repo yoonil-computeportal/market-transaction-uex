@@ -1,0 +1,88 @@
+https://uex-us.stoplight.io/docs/uex/7f7y83pi0b1wx-order-info-by-id
+
+
+Stoplight logo
+
+Like what you see? Create your own free Stoplight workspace to start documenting and designing APIs today.
+
+Create a Workspace
+
+Order info by ID
+POST
+https://uexswap.com/api/partners/order-show
+Fetches the full details and current status of an existing swap order by its ID. Use this to monitor swap progress.
+Request
+
+Body
+
+
+
+application/json
+
+Order ID to fetch
+orderId
+string
+required
+Unique identifier of the order (provided when the order was created).
+Example:
+tmkI1bXJeOs8
+Responses
+
+200
+400
+500
+Retrieves full order information along with the current status from external systems
+Body
+
+
+
+application/json
+
+
+data
+object
+
+order
+object
+external_status
+string
+The status can be one of the following: "Awaiting Deposit" — waiting for the user to deposit funds; "Confirming Deposit" — deposit received and awaiting blockchain confirmations; "Exchanging" — funds are being swapped at the current rate; "Sending" — the swapped funds are being sent to the recipient; "Complete" — swap successfully completed and funds delivered; "Refund" — funds have been returned to the sender due to an error; "Failed" — swap failed due to an error; "Volatility Protection" — swap is paused awaiting confirmation of a new rate due to market volatility; "Action Request" — additional user action is required (e.g., verification); "Request Overdue" — the time allowed for user action has expired.
+Example:
+Failed
+curl --request POST \
+  --url https://uexswap.com/api/partners/order-show \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "orderId": "tmkI1bXJeOs8"
+}'
+{
+  "data": {
+    "order": {
+      "orderId": "tmkI1bXJeOs8",
+      "depositAddress": "addr1v8vedqsrdrhkd0uncm83tfhy3yyr0kxudp3elce9jcgzseg77cypl",
+      "baseCurrencyAmount": "50",
+      "quoteCurrencyAmount": "0.01351345",
+      "recipientAddress": "0xeF2B8bd111413EE39ad9Ee45852023C1e822d90a",
+      "baseCurrency": {
+        "chainName": "ADA",
+        "currencyId": "ADA",
+        "currencyName": "ADA"
+      },
+      "quoteCurrency": {
+        "chainName": "ETH",
+        "currencyId": "ETH",
+        "currencyName": "ETH"
+      },
+      "qrCode": "https://quickchart.io/qr?chs=128x128&text=addr1v8vedqsrdrhkd0uncm83tfhy3yyr0kxudp3elce9jcgzseg77cypl"
+    },
+    "external_status": "Failed"
+  }
+}
+UEX
+
+Home
+UEX
+APIS
+Sign in
+powered by Stoplight

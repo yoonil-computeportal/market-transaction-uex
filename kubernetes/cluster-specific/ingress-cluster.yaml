@@ -1,0 +1,140 @@
+# ==============================================================================
+# Ingress Configuration for Test Kubernetes Cluster
+# ==============================================================================
+# Configured for cluster at 100.64.0.91-93
+# Assumes NGINX Ingress Controller is installed
+# ==============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: uex-payments-ingress
+  namespace: uex-payments-dev
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: nginx
+  rules:
+    # Main presentation dashboard
+    - host: uex-payments.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: presentation
+                port:
+                  number: 80
+
+    # Client tier (buyer interface)
+    - host: client.uex-payments.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: client-tier
+                port:
+                  number: 80
+
+    # Management dashboard
+    - host: management.uex-payments.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: management-frontend
+                port:
+                  number: 80
+
+    # API endpoints (UEX Backend)
+    - host: api.uex-payments.local
+      http:
+        paths:
+          # Payment API
+          - path: /api/payments
+            pathType: Prefix
+            backend:
+              service:
+                name: uex-backend
+                port:
+                  number: 3903
+          # Webhook API
+          - path: /api/webhooks
+            pathType: Prefix
+            backend:
+              service:
+                name: uex-backend
+                port:
+                  number: 3903
+
+---
+# ==============================================================================
+# Alternative: NodePort Access (No DNS Required)
+# ==============================================================================
+# Access services directly via cluster IP and NodePort
+#
+# Presentation:        http://100.64.0.91:30900
+# Client Tier:         http://100.64.0.91:30901
+# Management Frontend: http://100.64.0.91:30902
+# UEX Backend API:     http://100.64.0.91:30903
+# Processing Tier:     http://100.64.0.91:30904
+# Management Backend:  http://100.64.0.91:30905
+#
+# These NodePorts are already configured in kubernetes/base/services.yaml
+# ==============================================================================
+
+---
+# ==============================================================================
+# Ingress with IP-based routing (Alternative)
+# ==============================================================================
+# If you don't have DNS, you can access via controller IP
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: uex-payments-ingress-ip
+  namespace: uex-payments-dev
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    # Access via http://100.64.0.91/presentation
+    - http:
+        paths:
+          - path: /presentation
+            pathType: Prefix
+            backend:
+              service:
+                name: presentation
+                port:
+                  number: 80
+          - path: /client
+            pathType: Prefix
+            backend:
+              service:
+                name: client-tier
+                port:
+                  number: 80
+          - path: /management
+            pathType: Prefix
+            backend:
+              service:
+                name: management-frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: uex-backend
+                port:
+                  number: 3903

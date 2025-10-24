@@ -1,0 +1,77 @@
+https://uex-us.stoplight.io/docs/uex/7oianzo52ohud-get-oauth2-token-for-create-payment
+
+
+Stoplight logo
+
+Like what you see? Create your own free Stoplight workspace to start documenting and designing APIs today.
+
+Create a Workspace
+
+Get oauth2 token for create payment
+POST
+https://uex.us/api/merchant/oauth2/token
+All merchant-related endpoints require OAuth2 authentication. To authenticate, call the OAuth2 Token endpoint with your client credentials (client ID and secret). The endpoint returns a Bearer access token. Include this token in the Authorization header (e.g., Authorization: Bearer {token}) of subsequent requests.
+Request
+
+Body
+
+
+
+application/json
+
+Generates an OAuth2 access token for merchant operations (such as creating payments). Use your client credentials to obtain a token for authenticated requests.
+order
+string
+item_name
+string
+amount
+string
+success_url
+string
+failure_url
+string
+Responses
+
+200
+OK
+Body
+
+
+
+application/json
+
+responses
+/
+200
+success
+boolean
+Default:
+true
+
+data
+object
+access_token
+string
+Example:
+eyJ0eXAiOiJKV1QiL2JhbGciOiJIUzI1Nia9.eyJpc3MiOiJodHRwczovL3VleC51cy9hcGkvbWVyY2hhbnQvb2F1dGgyL3Rva2VuIiwiaWF0IjoxNzUyMTQzOTQ1LCJleHAiOjE3NTIxNDQ1NDUsIm5iZiI6MTc1MjE0Mzk0NSwianRpIjoiZmlUYXI3MDFCMkZ1YnZYaSIsInN1YiI6IjIwIiwicHJ2IjoiYzQ0YmYwZjY5NzVlY2MyNTMzNTFkNTVhNzU1ZTNkY2E3MzVlN2RhNSJ9._0RLWfYHCVTrzYheJIAa9TONZvsosyWwjZ3b-2DKjcU
+curl --request POST \
+  --url https://uex.us/api/merchant/oauth2/token \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "client_id": "0gSUdRh7aQC50UYLwvDVWESP1VVAW2",
+  "secret_key": "SBOiy5u1xiMSucz3mEAk6gsCcqc1aVXk2uVXvC1MWLClSSTz1ALmkdENTiPGQDMl6etXa3YObOG8qj1122QapVOkaTsytgwaSrjA"
+}'
+{
+  "success": true,
+  "data": {
+    "access_token": "eyJ0eXAiOiJKV1QiL2JhbGciOiJIUzI1Nia9.eyJpc3MiOiJodHRwczovL3VleC51cy9hcGkvbWVyY2hhbnQvb2F1dGgyL3Rva2VuIiwiaWF0IjoxNzUyMTQzOTQ1LCJleHAiOjE3NTIxNDQ1NDUsIm5iZiI6MTc1MjE0Mzk0NSwianRpIjoiZmlUYXI3MDFCMkZ1YnZYaSIsInN1YiI6IjIwIiwicHJ2IjoiYzQ0YmYwZjY5NzVlY2MyNTMzNTFkNTVhNzU1ZTNkY2E3MzVlN2RhNSJ9._0RLWfYHCVTrzYheJIAa9TONZvsosyWwjZ3b-2DKjcU"
+  }
+}
+UEX
+
+Home
+UEX
+APIS
+Sign in
+powered by Stoplight

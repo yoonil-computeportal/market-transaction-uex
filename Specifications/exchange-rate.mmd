@@ -1,0 +1,62 @@
+flowchart TB
+    subgraph ExchangeRateFlow["Exchange Rate Service Flow"]
+        START["Client Request:
+        Get Exchange Rate"]
+
+        START --> CHECK_CACHE{"Check
+        Cache"}
+
+        CHECK_CACHE -->|"Cache Hit
+        < 1 min old"| RETURN_CACHED["Return Cached Rate"]
+        CHECK_CACHE -->|"Cache Miss
+        or Expired"| FETCH_CURRENCIES
+
+        FETCH_CURRENCIES["UEXService:
+        getCurrencies"]
+        FETCH_CURRENCIES --> VALIDATE{"Validate
+        Currency Pair"}
+
+        VALIDATE -->|"Invalid Pair"| ERROR["Return Error:
+        Unsupported Currency"]
+        VALIDATE -->|"Valid Pair"| FETCH_ESTIMATE
+
+        FETCH_ESTIMATE["UEXService:
+        getEstimate"]
+        FETCH_ESTIMATE --> UEX_API_CALL["UEX API:
+        POST /api/partners/estimate"]
+
+        UEX_API_CALL --> API_SUCCESS{"API
+        Success?"}
+
+        API_SUCCESS -->|"Success"| CALC_FEES["Calculate Platform Fees:
+        - UEX buyer fee 0.1%
+        - UEX seller fee 0.1%
+        - Conversion fee 0.2%
+        - Management fee 1.0%"]
+        API_SUCCESS -->|"Failure"| FALLBACK{"Check
+        Old Cache"}
+
+        FALLBACK -->|"Available"| RETURN_OLD["Return Old Cached Rate
+        + Warning"]
+        FALLBACK -->|"Not Available"| ERROR
+
+        CALC_FEES --> STORE_CACHE["Store in Cache
+        TTL: 1 minute"]
+        STORE_CACHE --> STORE_DB["Store in Database
+        for History"]
+        STORE_DB --> RETURN_RATE["Return Complete Rate Data:
+        - Exchange rate
+        - Conversion amount
+        - Fee breakdown
+        - Min/Max limits"]
+
+        RETURN_CACHED --> END["Response to Client"]
+        RETURN_RATE --> END
+        RETURN_OLD --> END
+        ERROR --> END
+    end
+
+    style START fill:#90EE90
+    style END fill:#FFB6C1
+    style ERROR fill:#FF6B6B
+    style UEX_API_CALL fill:#87CEEB

@@ -1,0 +1,52 @@
+sequenceDiagram
+    participant Merchant
+    participant API
+    participant PaymentProcessingService
+    participant UEXService
+    participant Cache
+    participant UEX_Merchant_API
+    participant Customer
+
+    Merchant->>API: POST /api/uex/generate-payment-link<br/>{order_id, item_name, amount, currency}
+    
+    API->>PaymentProcessingService: generatePaymentLink()
+    
+    PaymentProcessingService->>UEXService: getAccessToken()
+    
+    UEXService->>Cache: Check cached token
+    
+    alt Token exists and valid
+        Cache-->>UEXService: Valid access token
+    else Token missing or expired
+        UEXService->>UEX_Merchant_API: POST /api/merchant/oauth2/token<br/>{grant_type, client_id, client_secret}
+        UEX_Merchant_API-->>UEXService: {access_token, expires_in}
+        UEXService->>Cache: Store token (TTL: expires_in - 60s)
+    end
+    
+    UEXService-->>PaymentProcessingService: Access token
+    
+    PaymentProcessingService->>UEXService: generatePaymentUrl(order_id, amount, ...)
+    
+    UEXService->>UEX_Merchant_API: POST /api/merchant/generate-payment-url<br/>Authorization: Bearer {token}<br/>{order_id, item_name, amount, success_url, failure_url}
+    
+    UEX_Merchant_API-->>UEXService: {payment_url, expires_at}
+    
+    UEXService-->>PaymentProcessingService: Payment URL
+    
+    PaymentProcessingService->>PaymentProcessingService: Store payment link metadata in DB
+    
+    PaymentProcessingService-->>API: Payment URL
+    
+    API-->>Merchant: {payment_url, expires_at}
+    
+    Merchant->>Customer: Redirect to payment_url
+    
+    Customer->>UEX_Merchant_API: Complete payment on UEX
+    
+    alt Payment Success
+        UEX_Merchant_API->>Customer: Redirect to success_url
+        Customer->>Merchant: success_url (payment confirmed)
+    else Payment Failed
+        UEX_Merchant_API->>Customer: Redirect to failure_url
+        Customer->>Merchant: failure_url (payment failed)
+    end

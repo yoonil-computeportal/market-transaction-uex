@@ -1,0 +1,70 @@
+# ============================================================================
+# Terraform .gitignore
+# ============================================================================
+
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files, which may contain sensitive data
+*.tfvars
+*.tfvars.json
+
+# Ignore override files as they are usually used to override resources locally
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+# Ignore plan files
+*.tfplan
+tfplan
+
+# Ignore lock files (comment out if you want to commit them)
+.terraform.lock.hcl
+
+# Ignore Mac system files
+.DS_Store
+
+# Ignore editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore generated documentation
+*.md.backup
+
+# Ignore certificate files
+*.pem
+*.key
+*.crt
+
+# Ignore backup files
+*.backup
+*.bak
+
+# Ignore SSH keys
+id_rsa*
+*.pub
+
+# Ignore AWS credentials
+.aws/
+credentials
+
+# Ignore temporary files
+tmp/
+temp/
+*.tmp

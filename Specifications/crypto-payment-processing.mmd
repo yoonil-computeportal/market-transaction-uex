@@ -1,0 +1,72 @@
+flowchart LR
+    START([Payment Request Received])
+    
+    START --> VALIDATE[Validate Request:<br/>- client_id, seller_id<br/>- amount > 0<br/>- valid currencies<br/>- payment_method = 'crypto']
+    
+    VALIDATE --> CHECK_CRYPTO{Is Crypto<br/>Payment?}
+    
+    CHECK_CRYPTO -->|No| EXISTING_FLOW[Use Existing Payment Flow<br/>Credit Card / Bank Transfer]
+    CHECK_CRYPTO -->|Yes| GET_RATE
+    
+    GET_RATE[ExchangeRateService:<br/>Get Exchange Rate]
+    GET_RATE --> RATE_SUCCESS{Rate<br/>Retrieved?}
+    
+    RATE_SUCCESS -->|No| ERROR_RESPONSE[Return Error:<br/>Currency pair not supported]
+    RATE_SUCCESS -->|Yes| CALC_AMOUNTS
+    
+    CALC_AMOUNTS[Calculate Amounts:<br/>1. Client amount in crypto<br/>2. Seller amount in target currency<br/>3. All fees]
+    
+    CALC_AMOUNTS --> CREATE_TX[Create Transaction in Database:<br/>- status: 'pending'<br/>- all amounts and fees<br/>- currencies<br/>- client/seller IDs]
+    
+    CREATE_TX --> DB_SUCCESS{Database<br/>Insert OK?}
+    
+    DB_SUCCESS -->|No| ROLLBACK[Rollback Transaction<br/>Return Error]
+    DB_SUCCESS -->|Yes| DETERMINE_SWAP
+    
+    DETERMINE_SWAP{Settlement<br/>Method?}
+    
+    DETERMINE_SWAP -->|blockchain| CRYPTO_TO_CRYPTO[UEXService:<br/>initiateSwap<br/>crypto-to-crypto]
+    DETERMINE_SWAP -->|bank| CRYPTO_TO_FIAT[UEXService:<br/>initiateSwap<br/>crypto-to-fiat]
+    
+    CRYPTO_TO_CRYPTO --> CALL_UEX_CRYPTO[UEX API:<br/>POST /swap/initiate-crypto-to-crypto]
+    CRYPTO_TO_FIAT --> CALL_UEX_FIAT[UEX API:<br/>POST /swap/initiate-crypto-to-fiat]
+    
+    CALL_UEX_CRYPTO --> UEX_SUCCESS{UEX API<br/>Success?}
+    CALL_UEX_FIAT --> UEX_SUCCESS
+    
+    UEX_SUCCESS -->|No| UPDATE_FAILED[Update Transaction:<br/>status = 'failed'<br/>error_message]
+    UEX_SUCCESS -->|Yes| UPDATE_PENDING
+    
+    UPDATE_FAILED --> ERROR_RESPONSE
+    
+    UPDATE_PENDING[Update Transaction:<br/>- uex_order_id<br/>- deposit_address<br/>- status: 'pending']
+    
+    UPDATE_PENDING --> GENERATE_QR[Generate QR Code:<br/>for deposit address]
+    
+    GENERATE_QR --> RETURN_SUCCESS[Return Success Response:<br/>- transaction_id<br/>- deposit_address<br/>- QR code URL<br/>- fee breakdown<br/>- estimated completion time]
+    
+    RETURN_SUCCESS --> WAIT_DEPOSIT[Wait for Customer<br/>to Send Crypto]
+    
+    WAIT_DEPOSIT --> WEBHOOK_OR_POLL{Status<br/>Update Via}
+    
+    WEBHOOK_OR_POLL -->|Webhook| WEBHOOK_UPDATE[UEX sends webhook<br/>to /api/uex/webhook]
+    WEBHOOK_OR_POLL -->|Polling| POLL_UPDATE[Polling service checks<br/>every 5 minutes]
+    
+    WEBHOOK_UPDATE --> UPDATE_STATUS[Update Transaction Status:<br/>- processing → completed<br/>- Update timestamps]
+    POLL_UPDATE --> UPDATE_STATUS
+    
+    UPDATE_STATUS --> NOTIFY_SELLER[Notify Seller:<br/>Payment Received]
+    
+    NOTIFY_SELLER --> PAYOUT[Process Seller Payout:<br/>Amount - Fees]
+    
+    PAYOUT --> END([Payment Complete])
+    
+    EXISTING_FLOW --> END
+    ROLLBACK --> END
+    ERROR_RESPONSE --> END
+
+    style START fill:#90EE90
+    style END fill:#FFB6C1
+    style ERROR_RESPONSE fill:#FF6B6B
+    style CALL_UEX_CRYPTO fill:#87CEEB
+    style CALL_UEX_FIAT fill:#87CEEB

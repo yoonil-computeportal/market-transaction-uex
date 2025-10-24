@@ -1,0 +1,99 @@
+https://uex-us.stoplight.io/docs/uex/nq8q9ov9psnxz-sreate-payment-link
+
+
+Stoplight logo
+
+Like what you see? Create your own free Stoplight workspace to start documenting and designing APIs today.
+
+Create a Workspace
+
+Сreate payment link
+POST
+https://uex.us/api/merchant/generate-payment-url
+Creates a payment link (URL) for a specified order or product. This can be embedded on a merchant website to redirect customers to a UEX-hosted payment page.
+Request
+
+Headers
+
+Authorization
+string
+Bearer {{token}}
+Body
+
+
+
+application/json
+
+order
+string
+required
+Example:
+1809001
+item_name
+string
+required
+Example:
+Iphone 16 pro max 256GB
+amount
+string
+required
+Example:
+4
+success_url
+string
+required
+Example:
+https://yourwebsite.com/order/1809001/success
+failure_url
+string
+required
+Example:
+https://yourwebsite.com/order/1809001/failed
+Responses
+
+200
+OK
+Body
+
+
+
+application/json
+
+responses
+/
+200
+order
+string
+item_name
+string
+amount
+string
+success_url
+string
+failure_url
+string
+curl --request POST \
+  --url https://uex.us/api/merchant/generate-payment-url \
+  --header 'Accept: application/json' \
+  --header 'Authorization: ' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "order": "1809001",
+  "item_name": "Iphone 16 pro max 256GB",
+  "amount": "4",
+  "success_url": "https://yourwebsite.com/order/1809001/success",
+  "failure_url": "https://yourwebsite.com/order/1809001/failed"
+}'
+{
+  "success": true,
+  "data": {
+    "redirect_url": "https://uex.us/payment/select-gateway?payload=eyJpdiI6Ijg3b2VsRnJhaXVxVGtjRXJvRnJGb0E9PSIsInZhbHVlIjoiakpLbytaeDhsOXEyNXBOeXBhdko1bGjdfb657zklXpQSXRxb1RuUDVKYmw4c2hMMFY1bU9tVEwyNlpWVTY2dXBLWXJaRk9YWHZvL29GUDRWV01ERE1YbUpEM2c3elNxUGpqZDMyakM5L2pYTUp4ZTJnY0ZkWFpzZkJLeExyY3laV0FHUzlQMDl5Zi82VE1QZnMrV0Zldjk3NTBDL2xITGxYa2lJcUZnRUhvdi9HZEdBU3d3d0JJay90TXJNQitURlBkZzFCM3ZUZUZvQXRZZmV1SE5Yd2twcTNXQUZhd1lXTjhaNkQ5a1pGNElrMzd1Y0VvVkV4a1JwbkJQdlJLMjdTQldSQkszMVNYV2hoMFpUSFl5UTBVcmNqaEc5RWRVdnFWRTJXK2hGMFUxN0hTOWNkaU9xNTAzMWVKVDVFTnZQVENpQlBBRm56b0tCVDBxZWRiQ29mdFJwVFBHdXFlSkw1QkZtejlMcmkyQ0U4ZHNrcTJadXJJZFgjsn3jfNGUvdzhGIiwibWFjIjoiNmI4NzlhZmZiMTFkMGUwMWZlZWQ1ZDQ3NjMxNDhiMGY4NjhkNTVmNDk3MTU0ZDkwFh1scHK43d12hMjEwYzU4YSIsFasdZyI6IiJ9"
+  }
+}
+UEX
+
+Home
+UEX
+APIS
+Sign in
+powered by Stoplight

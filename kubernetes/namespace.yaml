@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: uex-payments-dev
+  labels:
+    name: uex-payments-dev
+    environment: dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: uex-payments-staging
+  labels:
+    name: uex-payments-staging
+    environment: staging
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: uex-payments-prod
+  labels:
+    name: uex-payments-prod
+    environment: prod
