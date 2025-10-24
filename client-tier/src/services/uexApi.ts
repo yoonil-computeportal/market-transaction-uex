@@ -1,7 +1,18 @@
 import axios from 'axios';
 
 // UEX Backend API Configuration
-const UEX_API_BASE_URL = (import.meta as any).env?.VITE_UEX_API_URL || 'http://localhost:3903/api';
+// Dynamically construct URL based on window location for Kubernetes deployment
+const getUEXApiUrl = () => {
+  if (typeof window !== 'undefined') {
+    // In browser, use the same hostname with port 31903
+    const hostname = window.location.hostname;
+    return `http://${hostname}:31903/api`;
+  }
+  // Fallback for SSR or non-browser environments
+  return (import.meta as any).env?.VITE_UEX_API_URL || 'http://localhost:3903/api';
+};
+
+const UEX_API_BASE_URL = getUEXApiUrl();
 
 // Create axios instance for UEX API
 const uexApi = axios.create({

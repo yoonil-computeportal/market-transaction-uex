@@ -52,7 +52,16 @@ interface OrderStatus {
   updated_at: string;
 }
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3903';
+// Dynamically construct URL based on window location for Kubernetes deployment
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    return `http://${hostname}:31903`;
+  }
+  return process.env.REACT_APP_API_URL || 'http://localhost:3903';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const CryptoPayment: React.FC = () => {
   const [step, setStep] = useState<'select' | 'estimate' | 'deposit' | 'complete'>('select');
