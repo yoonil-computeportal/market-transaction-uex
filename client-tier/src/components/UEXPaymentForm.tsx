@@ -4,6 +4,15 @@ import { UEXApiService, UEXPaymentRequest, UEXPaymentResponse } from '../service
 import { orderApi } from '../services/api';
 import { FeeApprovalModal } from './FeeApprovalModal';
 
+// Helper function to get management backend URL dynamically
+const getManagementBackendUrl = () => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    return `http://${hostname}:30000`;
+  }
+  return 'http://localhost:9000';
+};
+
 interface UEXPaymentFormProps {
   onPaymentSuccess?: (response: UEXPaymentResponse) => void;
   onPaymentError?: (error: string) => void;
@@ -134,7 +143,7 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
       });
       
       // 결제 성공 후 management-tier에 트랜잭션 저장
-      await fetch('http://localhost:9000/api/management/integration/transactions/update', {
+      await fetch(`${getManagementBackendUrl()}/api/management/integration/transactions/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -183,7 +192,7 @@ const UEXPaymentForm: React.FC<UEXPaymentFormProps> = ({
             if (status !== lastStatus) {
               // Update management-tier when status changes
               try {
-              await fetch('http://localhost:9000/api/management/integration/transactions/update', {
+              await fetch(`${getManagementBackendUrl()}/api/management/integration/transactions/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
