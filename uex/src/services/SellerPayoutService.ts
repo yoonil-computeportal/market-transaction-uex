@@ -10,6 +10,7 @@
  */
 
 import { DatabaseService } from './DatabaseService';
+import { db } from '../models/Database';
 import { errorTracking } from './ErrorTrackingService';
 
 export interface SellerPayout {
@@ -70,7 +71,7 @@ export class SellerPayoutService {
    */
   async createPayout(request: CreatePayoutRequest): Promise<SellerPayout> {
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
 
       const payoutId = `payout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const netAmount = request.gross_amount - request.fees_deducted;
@@ -143,7 +144,7 @@ export class SellerPayoutService {
     filter: PayoutFilter = {}
   ): Promise<SellerPayout[]> {
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
 
       // Check if table exists
       const hasTable = await db.schema.hasTable('seller_payouts');
@@ -262,7 +263,7 @@ export class SellerPayoutService {
     payoutDate?: Date
   ): Promise<void> {
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
 
       const updateData: any = {
         payout_status: status,
@@ -302,7 +303,7 @@ export class SellerPayoutService {
    */
   async getPayoutById(payoutId: string): Promise<SellerPayout | null> {
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
 
       // Check if table exists
       const hasTable = await db.schema.hasTable('seller_payouts');
@@ -338,7 +339,7 @@ export class SellerPayoutService {
     total_net_earnings: number;
   }> {
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
 
       let query = db('payment_transactions')
         .where('seller_id', sellerId)
@@ -460,7 +461,7 @@ export class SellerPayoutService {
     total_amount: number;
   }> {
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
 
       // Get completed transactions
       const completedTransactions = await db('payment_transactions')

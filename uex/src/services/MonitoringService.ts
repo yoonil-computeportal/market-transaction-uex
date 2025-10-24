@@ -11,6 +11,7 @@
  */
 
 import { DatabaseService } from './DatabaseService';
+import { db } from '../models/Database';
 import { errorTracking } from './ErrorTrackingService';
 import * as os from 'os';
 
@@ -176,7 +177,7 @@ export class MonitoringService {
    */
   async getDashboardMetrics(): Promise<DashboardMetrics> {
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
       const now = new Date();
       const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -313,7 +314,7 @@ export class MonitoringService {
   private async checkDatabaseHealth(): Promise<ServiceStatus> {
     const startTime = Date.now();
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
       await db.raw('SELECT 1');
 
       return {
@@ -401,7 +402,7 @@ export class MonitoringService {
    */
   private async calculateAverageProcessingTime(): Promise<number> {
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
       const result = await db('payment_transactions')
         .where('status', 'completed')
         .whereNotNull('updated_at')
@@ -421,7 +422,7 @@ export class MonitoringService {
    */
   private async calculateTotalFees(since: Date): Promise<number> {
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
       const result = await db('payment_transactions')
         .where('status', 'completed')
         .where('created_at', '>=', since)
@@ -441,7 +442,7 @@ export class MonitoringService {
    */
   private async calculateTotalVolume(): Promise<number> {
     try {
-      const db = this.dbService.getDatabase();
+      // Use db directly from import
       const result = await db('payment_transactions')
         .where('status', 'completed')
         .sum('amount as total_volume')

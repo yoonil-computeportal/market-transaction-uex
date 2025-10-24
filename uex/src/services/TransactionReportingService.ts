@@ -9,6 +9,7 @@
  */
 
 import { DatabaseService } from './DatabaseService';
+import { db } from '../models/Database';
 import { errorTracking } from './ErrorTrackingService';
 
 export interface TransactionFilter {
@@ -73,7 +74,6 @@ export class TransactionReportingService {
    */
   async getTransactions(filter: TransactionFilter = {}): Promise<TransactionReportData[]> {
     try {
-      const db = this.dbService.getDatabase();
       let query = db('payment_transactions')
         .select(
           'transaction_id',
