@@ -174,6 +174,18 @@ spec:
     spec:
       imagePullSecrets:
         - name: harbor-registry-secret
+      initContainers:
+        - name: run-migrations
+          image: repository.computeportal.app/uex-payments/uex-backend:latest
+          command: ['sh', '-c', 'npx knex migrate:latest --knexfile=/app/knexfile.js']
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              value: "/app/data/uex_payments.sqlite3"
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
       containers:
         - name: uex-backend
           image: repository.computeportal.app/uex-payments/uex-backend:latest
@@ -186,10 +198,7 @@ spec:
             - name: NODE_ENV
               value: "production"
             - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: uex-secrets
-                  key: database-url
+              value: "/app/data/uex_payments.sqlite3"
             - name: UEX_REFERRAL_CODE
               valueFrom:
                 configMapKeyRef:
@@ -199,6 +208,9 @@ spec:
               value: "true"
             - name: UEX_POLL_INTERVAL_MINUTES
               value: "5"
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
           resources:
             requests:
               memory: "512Mi"
@@ -218,6 +230,9 @@ spec:
               port: 3903
             initialDelaySeconds: 10
             periodSeconds: 5
+      volumes:
+        - name: data
+          emptyDir: {}
 
 ---
 # Processing Tier Service
